@@ -1,0 +1,14 @@
+{
+  "high_standard": {
+    "unit_cost_per_m2": 4500,
+    "equivalent_area_factor": 1.1
+  },
+  "medium_standard": {
+    "unit_cost_per_m2": 3500,
+    "equivalent_area_factor": 1.0
+  },
+  "low_standard": {
+    "unit_cost_per_m2": 2500,
+    "equivalent_area_factor": 0.9
+  }
+}
