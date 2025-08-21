@@ -92,8 +92,8 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         grid_response = AgGrid(
             df,
             gridOptions=gridOptions,
-            height=800,
-            width='200%',
+            height=450,
+            width='20%',
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
             try_convert_numeric_dtypes=True,
