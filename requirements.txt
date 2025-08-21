@@ -2,3 +2,5 @@ streamlit
 pandas
 pip
 plotly
+plotly.express
+os
