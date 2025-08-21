@@ -68,7 +68,6 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
     df = pd.DataFrame(dados_tabela)
 
     # PASSO 2: Exibir e Configurar o Data Editor
-    st.write("### Edite os percentuais de cada custo abaixo:")
     edited_df = st.data_editor(
         df,
         column_config={
