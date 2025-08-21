@@ -12,8 +12,8 @@ def card_metric(label, value, icon_name="wallet2"):
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
         <div style="
             border: 1px solid #e1e1e1;
-            border-radius: 8px;
-            padding: 20px;
+            border-radius: 6px;
+            padding: 24px;
             text-align: center;
             background-color: #f9f9f9;
         ">
@@ -76,7 +76,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         }
     """)
 
-    gb.configure_column("Item", headerName="Item", width=1250, resizable=False)
+    gb.configure_column("Item", headerName="Item", width=1800, resizable=True)
     gb.configure_column("%", headerName="%", editable=True, width=100, resizable=False,
                         type=["numericColumn", "numberColumnFilter", "customNumericFormat"],
                         precision=2)
