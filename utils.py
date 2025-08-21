@@ -71,24 +71,17 @@ def save_project(info):
         pid = (max(p["id"] for p in projs) + 1) if projs else 1
         info["id"] = pid; info["created_at"] = datetime.utcnow().isoformat(); projs.append(info)
     save_json(projs, JSON_PATH)
-
 def load_project(pid):
     project_data = next((p for p in load_json(JSON_PATH) if p["id"] == pid), None)
-    
-    # Migração de dados para custos diretos
     if project_data and 'etapas_percentuais' in project_data:
         etapas = project_data['etapas_percentuais']
         if etapas and isinstance(list(etapas.values())[0], (int, float)):
             project_data['etapas_percentuais'] = {k: {"percentual": v, "fonte": "Manual"} for k, v in etapas.items()}
-            
-    # <<< CORREÇÃO: Migração de dados para custos indiretos
     if project_data and 'custos_indiretos_percentuais' in project_data:
         custos = project_data['custos_indiretos_percentuais']
         if custos and isinstance(list(custos.values())[0], (int, float)):
             project_data['custos_indiretos_percentuais'] = {k: {"percentual": v, "fonte": "Manual"} for k, v in custos.items()}
-
     return project_data
-
 def delete_project(pid):
     projs = [p for p in load_json(JSON_PATH) if p["id"] != pid]; save_json(projs, JSON_PATH)
 def save_to_historico(info, tipo_custo):
