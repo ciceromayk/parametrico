@@ -1,5 +1,6 @@
 # app.py
 import streamlit as st
+from datetime import datetime  # <<< CORREÇÃO: Importação adicionada
 from utils import (
     init_storage, list_projects, save_project, load_project, delete_project,
     DEFAULT_PAVIMENTO, ETAPAS_OBRA, DEFAULT_CUSTOS_INDIRETOS, DEFAULT_CUSTOS_INDIRETOS_FIXOS, fmt_br
@@ -8,7 +9,7 @@ from utils import (
 st.set_page_config(page_title="ViEnge - Gestão de Projetos", layout="wide")
 init_storage("projects.json")
 
-# <<< 2. CSS PARA AUMENTAR O TEXTO DO MENU NA SIDEBAR
+# CSS PARA AUMENTAR O TEXTO DO MENU NA SIDEBAR
 st.markdown("""
 <style>
     div[data-testid="stSidebarNav"] li a {
@@ -25,7 +26,6 @@ def page_project_selection():
     
     st.divider()
 
-    # <<< 5. TABELA DE GERENCIAMENTO DE PROJETOS
     st.subheader("📂 Projetos Existentes")
     
     projetos = list_projects()
