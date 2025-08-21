@@ -2,18 +2,6 @@
 import streamlit as st
 import pandas as pd
 from utils import *
-import locale
-
-# Define a localidade para Português do Brasil para formatar a moeda
-try:
-    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-except locale.Error:
-    try:
-        # Fallback para ambientes que não têm a localidade pt_BR instalada
-        locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-        st.warning("Localidade 'pt_BR.UTF-8' não encontrada. Usando formatação de moeda americana.")
-    except locale.Error:
-        st.error("Nenhuma localidade suportada foi encontrada. A formatação de moeda pode falhar.")
 
 st.set_page_config(page_title="Custos Indiretos", layout="wide")
 
@@ -36,7 +24,7 @@ if "projeto_info" not in st.session_state:
         st.switch_page("Início.py")
     st.stop()
 
-# CORREÇÃO: Passamos uma chave única para a função da sidebar
+# Passamos uma chave única para a função da sidebar
 render_sidebar(form_key="sidebar_custos_indiretos")
 info = st.session_state.projeto_info
 st.title("💸 Custos Indiretos")
@@ -60,7 +48,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
 
     # PASSO 1: Preparar os Dados para o Data Editor
     dados_tabela = []
-    for item, (min_val, default_val, max_val) in DEFAULT_CUSTOS_INDIRETOS.items():
+    for item, (min_val, default_val, max_val) in DEFAULT_Cस्तOS_INDIRETOS.items():
         percentual_atual = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val})['percentual']
         dados_tabela.append({
             "Item": item,
@@ -107,6 +95,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
     with col_metrica:
         card_metric(
             label="Custo Indireto Total",
-            value=locale.currency(custo_indireto_calculado, grouping=True),
+            # CORREÇÃO: Usando sua função fmt_br que já existe em utils.py
+            value=f"R$ {fmt_br(custo_indireto_calculado)}",
             icon_name="cash-coin"
         )
