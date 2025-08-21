@@ -4,10 +4,6 @@ import pandas as pd
 import streamlit_antd_components as sac
 from utils import *
 
-# --- LINHA DE TESTE ---
-st.write(dir(sac))
-# --------------------
-
 st.set_page_config(page_title="Custos Indiretos", layout="wide")
 
 # Aumentamos a fonte do valor aqui na função do card
@@ -116,9 +112,10 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
     
     _, col_metrica = st.columns([2, 1])
     with col_metrica:
-        sac.card(
-            title='Custo Indireto Total',
+        # --- MUDANÇA PRINCIPAL AQUI ---
+        # Trocamos a função 'card' pela 'result', que sabemos que existe.
+        sac.result(
+            label='Custo Indireto Total',
             description=f'R$ {fmt_br(custo_indireto_calculado)}',
-            size='lg',
-            icon='wallet2'
-    )
+            status='success'
+        )
