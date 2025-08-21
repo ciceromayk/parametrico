@@ -17,11 +17,20 @@ TIPOS_PAVIMENTO = {
     "Piscinas": (0.50, 0.75), "Quintais / Calçadas / Jardins": (0.10, 0.30), "Projeção Terreno sem Benfeitoria": (0.00, 0.00),
 }
 DEFAULT_PAVIMENTO = {"nome": "Pavimento Tipo", "tipo": "Área Privativa (Autônoma)", "rep": 1, "coef": 1.00, "area": 100.0, "constr": True}
+
 ETAPAS_OBRA = {
-    "Serviços Preliminares e Fundações": 8.0, "Estrutura (Supraestrutura)": 16.0, "Vedações (Alvenaria)": 10.0,
-    "Cobertura e Impermeabilização": 5.0, "Revestimentos de Fachada": 6.0, "Instalações (Elétrica e Hidráulica)": 15.0,
-    "Esquadrias (Portas e Janelas)": 8.0, "Revestimentos de Piso": 10.0, "Revestimentos de Parede": 8.0,
-    "Revestimentos de Forro": 4.0, "Pintura": 5.0, "Serviços Complementares e Externos": 5.0
+    "Serviços Preliminares e Fundações":       (7.0, 8.0, 9.0),
+    "Estrutura (Supraestrutura)":              (14.0, 16.0, 22.0),
+    "Vedações (Alvenaria)":                    (8.0, 10.0, 15.0),
+    "Cobertura e Impermeabilização":           (4.0, 5.0, 8.0),
+    "Revestimentos de Fachada":                (5.0, 6.0, 10.0),
+    "Instalações (Elétrica e Hidráulica)":      (12.0, 15.0, 18.0),
+    "Esquadrias (Portas e Janelas)":           (6.0, 8.0, 12.0),
+    "Revestimentos de Piso":                   (8.0, 10.0, 15.0),
+    "Revestimentos de Parede":                 (6.0, 8.0, 12.0),
+    "Revestimentos de Forro":                  (3.0, 4.0, 6.0),
+    "Pintura":                                 (4.0, 5.0, 8.0),
+    "Serviços Complementares e Externos":      (3.0, 5.0, 10.0)
 }
 DEFAULT_CUSTOS_INDIRETOS = {
     "IRPJ/CS/PIS/COFINS (sobre VGV)": 4.8, "Corretagem (sobre VGV)": 3.61, "Publicidade (sobre VGV)": 0.9,
@@ -58,27 +67,32 @@ def fmt_br(valor):
     s = f"{valor:,.2f}"; return s.replace(",", "X").replace(".", ",").replace("X", ".")
 def render_metric_card(title, value, color="#31708f"):
     return f"""<div style="background-color:{color}; border-radius:6px; padding:15px; text-align:center; height:100%;"><div style="color:#fff; font-size:16px; margin-bottom:4px;">{title}</div><div style="color:#fff; font-size:28px; font-weight:bold;">{value}</div></div>"""
-
-# <<< 3. FUNÇÃO DE REDISTRIBUIÇÃO ATUALIZADA COM FEEDBACK
 def handle_percentage_redistribution(etapas_key='etapas_percentuais'):
     if 'previous_etapas' not in st.session_state: st.session_state.previous_etapas = st.session_state[etapas_key].copy()
     current, previous = st.session_state[etapas_key], st.session_state.previous_etapas
     if current == previous: return
     
-    st.session_state.redistribution_occured = True # Seta a flag para mostrar a mensagem
+    st.session_state.redistribution_occured = True
     changed_etapa = next((e for e, p in current.items() if p != previous.get(e)), None)
     if changed_etapa:
         delta = current[changed_etapa] - previous[changed_etapa]
         total_others = sum(v for k, v in previous.items() if k != changed_etapa)
         if total_others > 0:
             for e, p in current.items():
-                if e != changed_etapa: current[e] = max(0, p - (delta * (previous[e] / total_others)))
+                if e != changed_etapa:
+                    min_val, _, max_val = ETAPAS_OBRA[e]
+                    proportion = previous[e] / total_others
+                    new_percent = p - (delta * proportion)
+                    current[e] = max(min_val, min(new_percent, max_val))
+        
         total_sum = sum(current.values())
         if total_sum > 0: factor = 100 / total_sum
         else: factor = 0
-        for e in current: current[e] *= factor
-    st.session_state.previous_etapas = current.copy(); st.rerun()
+        for e in current:
+            min_val, _, max_val = ETAPAS_OBRA[e]
+            current[e] = max(min_val, min(current[e] * factor, max_val))
 
+    st.session_state.previous_etapas = current.copy(); st.rerun()
 
 # --- PÁGINA 1: ORÇAMENTO DIRETO ---
 def page_budget_tool():
@@ -87,38 +101,38 @@ def page_budget_tool():
     if 'pavimentos' not in st.session_state:
         st.session_state.pavimentos = [p.copy() for p in info.get('pavimentos', [DEFAULT_PAVIMENTO.copy()])]
     
-    c1, c2, c3, c4 = st.columns(4)
-    cores = ["#31708f", "#3c763d", "#8a6d3b", "#a94442"]
-    c1.markdown(render_metric_card("Nome", info["nome"], cores[0]), unsafe_allow_html=True)
-    c2.markdown(render_metric_card("Área Terreno", f"{fmt_br(info['area_terreno'])} m²", cores[1]), unsafe_allow_html=True)
-    c3.markdown(render_metric_card("Área Privativa", f"{fmt_br(info['area_privativa'])} m²", cores[2]), unsafe_allow_html=True)
-    c4.markdown(render_metric_card("Nº Unidades", str(info["num_unidades"]), cores[3]), unsafe_allow_html=True)
+    with st.expander("Dados Gerais do Projeto", expanded=True):
+        c1, c2, c3, c4 = st.columns(4)
+        cores = ["#31708f", "#3c763d", "#8a6d3b", "#a94442"]
+        c1.markdown(render_metric_card("Nome", info["nome"], cores[0]), unsafe_allow_html=True)
+        c2.markdown(render_metric_card("Área Terreno", f"{fmt_br(info['area_terreno'])} m²", cores[1]), unsafe_allow_html=True)
+        c3.markdown(render_metric_card("Área Privativa", f"{fmt_br(info['area_privativa'])} m²", cores[2]), unsafe_allow_html=True)
+        c4.markdown(render_metric_card("Nº Unidades", str(info["num_unidades"]), cores[3]), unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("#### 🏢 Dados dos Pavimentos")
-    b1, b2, _ = st.columns([0.2, 0.2, 0.6])
-    if b1.button("➕ Adicionar Pavimento"): st.session_state.pavimentos.append(DEFAULT_PAVIMENTO.copy()); st.rerun()
-    if b2.button("➖ Remover Último"): 
-        if st.session_state.pavimentos: st.session_state.pavimentos.pop(); st.rerun()
+    with st.expander("🏢 Dados dos Pavimentos", expanded=True):
+        b1, b2, _ = st.columns([0.2, 0.2, 0.6])
+        if b1.button("➕ Adicionar Pavimento"): st.session_state.pavimentos.append(DEFAULT_PAVIMENTO.copy()); st.rerun()
+        if b2.button("➖ Remover Último"): 
+            if st.session_state.pavimentos: st.session_state.pavimentos.pop(); st.rerun()
 
-    col_widths = [3, 3, 1, 1.2, 1.5, 1.5, 1.5, 1.5]
-    headers = ["Nome", "Tipo", "Rep.", "Coef.", "Área (m²)", "Área Eq. Total", "Área Constr.", "Considerar A.C?"]
-    header_cols = st.columns(col_widths)
-    for hc, title in zip(header_cols, headers): hc.markdown(f'**{title}**')
+        col_widths = [3, 3, 1, 1.2, 1.5, 1.5, 1.5, 1.5]
+        headers = ["Nome", "Tipo", "Rep.", "Coef.", "Área (m²)", "Área Eq. Total", "Área Constr.", "Considerar A.C?"]
+        header_cols = st.columns(col_widths)
+        for hc, title in zip(header_cols, headers): hc.markdown(f'**{title}**')
 
-    for i, pav in enumerate(st.session_state.pavimentos):
-        cols = st.columns(col_widths)
-        pav['nome'] = cols[0].text_input("nome", pav['nome'], key=f"nome_{i}", label_visibility="collapsed")
-        pav['tipo'] = cols[1].selectbox("tipo", list(TIPOS_PAVIMENTO.keys()), list(TIPOS_PAVIMENTO.keys()).index(pav.get('tipo', next(iter(TIPOS_PAVIMENTO)))), key=f"tipo_{i}", label_visibility="collapsed")
-        pav['rep'] = cols[2].number_input("rep", min_value=1, value=pav['rep'], step=1, key=f"rep_{i}", label_visibility="collapsed")
-        min_c, max_c = TIPOS_PAVIMENTO[pav['tipo']]
-        pav['coef'] = min_c if min_c == max_c else cols[3].slider("coef", min_c, max_c, float(pav.get('coef', min_c)), 0.01, format="%.2f", key=f"coef_{i}", label_visibility="collapsed")
-        if min_c == max_c: cols[3].markdown(f"<div style='text-align:center; padding-top: 8px;'>{pav['coef']:.2f}</div>", unsafe_allow_html=True)
-        pav['area'] = cols[4].number_input("area", min_value=0.0, value=float(pav['area']), step=10.0, format="%.2f", key=f"area_{i}", label_visibility="collapsed")
-        pav['constr'] = cols[7].selectbox("incluir", ["Sim", "Não"], 0 if pav.get('constr', True) else 1, key=f"constr_{i}", label_visibility="collapsed") == "Sim"
-        total_i, area_eq_i = pav['area'] * pav['rep'], (pav['area'] * pav['rep']) * pav['coef']
-        cols[5].markdown(f"<div style='text-align:center; padding-top: 8px;'>{fmt_br(area_eq_i)}</div>", unsafe_allow_html=True)
-        cols[6].markdown(f"<div style='text-align:center; padding-top: 8px;'>{fmt_br(total_i)}</div>", unsafe_allow_html=True)
+        for i, pav in enumerate(st.session_state.pavimentos):
+            cols = st.columns(col_widths)
+            pav['nome'] = cols[0].text_input("nome", pav['nome'], key=f"nome_{i}", label_visibility="collapsed")
+            pav['tipo'] = cols[1].selectbox("tipo", list(TIPOS_PAVIMENTO.keys()), list(TIPOS_PAVIMENTO.keys()).index(pav.get('tipo', next(iter(TIPOS_PAVIMENTO)))), key=f"tipo_{i}", label_visibility="collapsed")
+            pav['rep'] = cols[2].number_input("rep", min_value=1, value=pav['rep'], step=1, key=f"rep_{i}", label_visibility="collapsed")
+            min_c, max_c = TIPOS_PAVIMENTO[pav['tipo']]
+            pav['coef'] = min_c if min_c == max_c else cols[3].slider("coef", min_c, max_c, float(pav.get('coef', min_c)), 0.01, format="%.2f", key=f"coef_{i}", label_visibility="collapsed")
+            if min_c == max_c: cols[3].markdown(f"<div style='text-align:center; padding-top: 8px;'>{pav['coef']:.2f}</div>", unsafe_allow_html=True)
+            pav['area'] = cols[4].number_input("area", min_value=0.0, value=float(pav['area']), step=10.0, format="%.2f", key=f"area_{i}", label_visibility="collapsed")
+            pav['constr'] = cols[7].selectbox("incluir", ["Sim", "Não"], 0 if pav.get('constr', True) else 1, key=f"constr_{i}", label_visibility="collapsed") == "Sim"
+            total_i, area_eq_i = pav['area'] * pav['rep'], (pav['area'] * pav['rep']) * pav['coef']
+            cols[5].markdown(f"<div style='text-align:center; padding-top: 8px;'>{fmt_br(area_eq_i)}</div>", unsafe_allow_html=True)
+            cols[6].markdown(f"<div style='text-align:center; padding-top: 8px;'>{fmt_br(total_i)}</div>", unsafe_allow_html=True)
 
     info['pavimentos'] = st.session_state.pavimentos
     df = pd.DataFrame(info['pavimentos'])
@@ -134,88 +148,68 @@ def page_budget_tool():
         custo_direto_total = df["custo_direto"].sum()
         custo_final_projeto = custo_direto_total + custos_config.get('outros', 0.0) + custo_contencao
         
-        st.markdown("---")
-        st.markdown("## 📊 Análise e Resumo Financeiro")
-        total_constr = df["area_constr"].sum()
-        custo_por_ac = custo_final_projeto / total_constr if total_constr > 0 else 0.0
-        custo_med_unit = custo_final_projeto / info["num_unidades"] if info["num_unidades"] > 0 else 0.0
-        card_cols = st.columns(4)
-        card_cols[0].markdown(render_metric_card("Custo Final do Projeto", f"R$ {fmt_br(custo_final_projeto)}", cores[3]), unsafe_allow_html=True)
-        card_cols[1].markdown(render_metric_card("Custo Médio / Unidade", f"R$ {fmt_br(custo_med_unit)}", "#337ab7"), unsafe_allow_html=True)
-        card_cols[2].markdown(render_metric_card("Custo / m² (Área Constr.)", f"R$ {fmt_br(custo_por_ac)}", cores[1]), unsafe_allow_html=True)
-        card_cols[3].markdown(render_metric_card("Área Construída Total", f"{fmt_br(total_constr)} m²", cores[2]), unsafe_allow_html=True)
-        
-        custo_por_tipo = df.groupby("tipo")["custo_direto"].sum().reset_index()
-        fig = px.bar(custo_por_tipo, x='tipo', y='custo_direto', text_auto='.2s', title="Custo Direto por Tipo de Pavimento")
-        fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False); fig.update_layout(xaxis_title=None, yaxis_title="Custo (R$)")
-        st.plotly_chart(fig, use_container_width=True)
-
-        st.markdown("---")
-        st.markdown("### 📑 Detalhamento do Empreendimento")
-        
-        # <<< 1. LÓGICA DE SOMATÓRIO E FORMATAÇÃO DA TABELA
-        df_display = df.rename(columns={"nome": "Nome", "tipo": "Tipo", "rep": "Rep.", "coef": "Coef.", "area": "Área (m²)", "area_eq": "Área Eq. Total (m²)", "area_constr": "Área Constr. (m²)", "custo_direto": "Custo Direto (R$)"})
-        colunas_a_exibir = ["Nome", "Tipo", "Rep.", "Coef.", "Área (m²)", "Área Eq. Total (m²)", "Área Constr. (m²)", "Custo Direto (R$)"]
-        
-        # Cria uma cópia para formatação
-        df_formatted = df_display[colunas_a_exibir].copy()
-
-        # Calcula totais a partir do dataframe original (numérico)
-        soma_eq = df['area_eq'].sum()
-        soma_constr = df['area_constr'].sum()
-        soma_custo = df['custo_direto'].sum()
-        
-        # Aplica formatação de string
-        for col in ["Área Eq. Total (m²)", "Área Constr. (m²)"]:
-            df_formatted[col] = df_formatted[col].apply(fmt_br)
-        df_formatted["Custo Direto (R$)"] = df_formatted["Custo Direto (R$)"].apply(lambda v: f"R$ {fmt_br(v)}")
-
-        # Cria linha de total já formatada
-        total_row = pd.DataFrame([{
-            "Nome": "<strong>TOTAL</strong>", "Tipo": "", "Rep.": "", "Coef.": "", "Área (m²)": "",
-            "Área Eq. Total (m²)": f"<strong>{fmt_br(soma_eq)}</strong>",
-            "Área Constr. (m²)": f"<strong>{fmt_br(soma_constr)}</strong>",
-            "Custo Direto (R$)": f"<strong>R$ {fmt_br(soma_custo)}</strong>"
-        }])
-        
-        # Concatena e exibe como HTML para permitir negrito
-        df_final_display = pd.concat([df_formatted, total_row], ignore_index=True)
-        st.markdown(df_final_display.to_html(escape=False, index=False, justify="center"), unsafe_allow_html=True)
-        
-        st.markdown("---")
-        with st.expander("💸 Custo Direto por Etapa da Obra", expanded=True):
-            if 'etapas_percentuais' not in st.session_state: st.session_state.etapas_percentuais = info.get('etapas_percentuais', ETAPAS_OBRA).copy()
-            if 'previous_etapas' not in st.session_state: st.session_state.previous_etapas = st.session_state.etapas_percentuais.copy()
+        with st.expander("📊 Análise e Resumo Financeiro", expanded=True):
+            total_constr = df["area_constr"].sum()
+            custo_por_ac = custo_final_projeto / total_constr if total_constr > 0 else 0.0
+            custo_med_unit = custo_final_projeto / info["num_unidades"] if info["num_unidades"] > 0 else 0.0
+            card_cols = st.columns(4)
+            card_cols[0].markdown(render_metric_card("Custo Final do Projeto", f"R$ {fmt_br(custo_final_projeto)}", cores[3]), unsafe_allow_html=True)
+            card_cols[1].markdown(render_metric_card("Custo Médio / Unidade", f"R$ {fmt_br(custo_med_unit)}", "#337ab7"), unsafe_allow_html=True)
+            card_cols[2].markdown(render_metric_card("Custo / m² (Área Constr.)", f"R$ {fmt_br(custo_por_ac)}", cores[1]), unsafe_allow_html=True)
+            card_cols[3].markdown(render_metric_card("Área Construída Total", f"{fmt_br(total_constr)} m²", cores[2]), unsafe_allow_html=True)
             
-            # <<< 2. TABELA ÚNICA DE CUSTOS POR ETAPA
+            custo_por_tipo = df.groupby("tipo")["custo_direto"].sum().reset_index()
+            fig = px.bar(custo_por_tipo, x='tipo', y='custo_direto', text_auto='.2s', title="Custo Direto por Tipo de Pavimento")
+            fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False); fig.update_layout(xaxis_title=None, yaxis_title="Custo (R$)")
+            st.plotly_chart(fig, use_container_width=True)
+
+        with st.expander("📑 Detalhamento do Empreendimento", expanded=True):
+            df_display = df.rename(columns={"nome": "Nome", "tipo": "Tipo", "rep": "Rep.", "coef": "Coef.", "area": "Área (m²)", "area_eq": "Área Eq. Total (m²)", "area_constr": "Área Constr. (m²)", "custo_direto": "Custo Direto (R$)"})
+            colunas_a_exibir = ["Nome", "Tipo", "Rep.", "Coef.", "Área (m²)", "Área Eq. Total (m²)", "Área Constr. (m²)", "Custo Direto (R$)"]
+            df_formatted = df_display[colunas_a_exibir].copy()
+            soma_eq = df['area_eq'].sum()
+            soma_constr = df['area_constr'].sum()
+            soma_custo = df['custo_direto'].sum()
+            for col in ["Área (m²)", "Área Eq. Total (m²)", "Área Constr. (m²)"]:
+                df_formatted[col] = df_formatted[col].apply(fmt_br)
+            df_formatted["Custo Direto (R$)"] = df_formatted["Custo Direto (R$)"].apply(lambda v: f"R$ {fmt_br(v)}")
+            total_row = pd.DataFrame([{"Nome": "<strong>TOTAL</strong>", "Tipo": "", "Rep.": "", "Coef.": "", "Área (m²)": "",
+                                       "Área Eq. Total (m²)": f"<strong>{fmt_br(soma_eq)}</strong>", "Área Constr. (m²)": f"<strong>{fmt_br(soma_constr)}</strong>",
+                                       "Custo Direto (R$)": f"<strong>R$ {fmt_br(soma_custo)}</strong>"}])
+            df_final_display = pd.concat([df_formatted, total_row], ignore_index=True)
+            st.markdown(df_final_display.to_html(escape=False, index=False, justify="center"), unsafe_allow_html=True)
+        
+        with st.expander("💸 Custo Direto por Etapa da Obra", expanded=True):
+            if 'etapas_percentuais' not in st.session_state:
+                etapas_salvas = info.get('etapas_percentuais', {})
+                st.session_state.etapas_percentuais = {etapa: etapas_salvas.get(etapa, vals[1]) for etapa, vals in ETAPAS_OBRA.items()}
+
+            if 'previous_etapas' not in st.session_state: 
+                st.session_state.previous_etapas = st.session_state.etapas_percentuais.copy()
+            
             col1, col2, col3 = st.columns([2.5, 2, 1.5]); col1.markdown("**Etapa**"); col2.markdown("**Percentual (%)**"); col3.markdown("**Custo da Etapa (R$)**")
             
-            for etapa, percent_padrao in st.session_state.etapas_percentuais.items():
+            for etapa, (min_val, default_val, max_val) in ETAPAS_OBRA.items():
                 col1, col2, col3 = st.columns([2.5, 2, 1.5])
                 col1.container(height=38, border=False).write(etapa)
-                percent_atual = col2.slider(etapa, 0.0, 100.0, float(percent_padrao), 0.5, key=f"etapa_{etapa.replace(' ', '_')}", label_visibility="collapsed")
+                current_percent = st.session_state.etapas_percentuais.get(etapa, default_val)
+                percent_atual = col2.slider(etapa, min_value=min_val, max_value=max_val, value=float(current_percent), step=0.5, key=f"etapa_{etapa.replace(' ', '_')}", label_visibility="collapsed")
                 st.session_state.etapas_percentuais[etapa] = percent_atual
                 custo_etapa = custo_direto_total * (percent_atual / 100)
                 col3.container(height=38, border=False).write(f"R$ {fmt_br(custo_etapa)}")
             
             handle_percentage_redistribution()
-
             st.divider()
-            
-            # Somatório no final
             custo_total_etapas = custo_direto_total + custo_contencao
             soma_cols = st.columns([2.5, 2, 1.5])
             soma_cols[0].markdown("<strong>TOTAL</strong>", unsafe_allow_html=True)
             soma_cols[2].markdown(f"<strong>R$ {fmt_br(custo_total_etapas)}</strong>", unsafe_allow_html=True)
-            
 
 # --- PÁGINA 2: ANÁLISE DE VIABILIDADE ---
 def page_viability_analysis():
-    # ... (O código desta página permanece o mesmo da versão anterior)
     st.title("📊 Análise de Viabilidade do Empreendimento")
     info = st.session_state.projeto_info
     
-    # Cálculos Puxados do Orçamento Direto
     pavimentos_df = pd.DataFrame(info.get('pavimentos', []))
     custos_config = info.get('custos_config', {})
     custo_direto_total, area_construida_total = 0, 0
@@ -318,7 +312,8 @@ def main():
                 info = {
                     "nome": nome, "area_terreno": area_terreno, "area_privativa": area_privativa, "num_unidades": num_unidades, "endereco": "",
                     "custos_config": {"cub": 4500.0, "outros": 0.0, "custo_contencao_m2": 400.0, "custo_terreno_m2": 2500.0},
-                    "etapas_percentuais": ETAPAS_OBRA.copy(), "pavimentos": [DEFAULT_PAVIMENTO.copy()],
+                    "etapas_percentuais": {etapa: vals[1] for etapa, vals in ETAPAS_OBRA.items()},
+                    "pavimentos": [DEFAULT_PAVIMENTO.copy()],
                     "unidades_vgv": [{"Tipo": "Padrão", "Quant.": num_unidades, "Área Privativa (m²)": (area_privativa / num_unidades if num_unidades > 0 else 0), "Valor Médio de Venda (R$)": 500000.0}],
                     "custos_indiretos": DEFAULT_CUSTOS_INDIRETOS.copy()
                 }
@@ -328,6 +323,22 @@ def main():
         st.sidebar.title(f"Projeto: {info['nome']}")
         st.sidebar.markdown(f"ID: {info['id']}")
         page = st.sidebar.radio("Navegar", ["Orçamento Direto", "Análise de Viabilidade"])
+        
+        with st.sidebar.expander("📝 Editar Dados Gerais"):
+            with st.form("edit_form_sidebar"):
+                info['nome'] = st.text_input("Nome", value=info['nome'])
+                info['area_terreno'] = st.number_input("Área Terreno (m²)", value=info['area_terreno'], format="%.2f")
+                info['area_privativa'] = st.number_input("Área Privativa (m²)", value=info['area_privativa'], format="%.2f")
+                info['num_unidades'] = st.number_input("Unidades", value=info['num_unidades'], step=1)
+                st.form_submit_button("Atualizar")
+
+        with st.sidebar.expander("💰 Configuração de Custos"):
+            custos_config = info.get('custos_config', {})
+            custos_config['cub'] = st.number_input("CUB (R$/m²)", min_value=0.0, value=custos_config.get('cub', 4500.0), step=100.0, format="%.2f")
+            custos_config['outros'] = st.number_input("Outros Custos Diretos (R$)", min_value=0.0, value=custos_config.get('outros', 0.0), format="%.2f")
+            custos_config['custo_contencao_m2'] = st.number_input("Custo Contenção (R$/m² subsolo)", min_value=0.0, value=custos_config.get('custo_contencao_m2', 400.0), format="%.2f")
+            info['custos_config'] = custos_config
+        
         st.sidebar.divider()
         if st.sidebar.button("💾 Salvar Todas as Alterações", use_container_width=True, type="primary"):
             save_project(st.session_state.projeto_info); st.sidebar.success("Projeto salvo com sucesso!")
@@ -337,7 +348,6 @@ def main():
                 if key in st.session_state: del st.session_state[key]
             st.rerun()
         
-        # <<< 3. LÓGICA PARA EXIBIR MENSAGEM DE FEEDBACK DA REDISTRIBUIÇÃO
         if st.session_state.get("redistribution_occured", False):
             st.toast("Percentuais reajustados para manter a soma em 100%!", icon="👍")
             del st.session_state.redistribution_occured
