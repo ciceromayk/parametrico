@@ -4,6 +4,10 @@ import pandas as pd
 import streamlit_antd_components as sac
 from utils import *
 
+# --- LINHA DE TESTE ---
+st.write(dir(sac))
+# --------------------
+
 st.set_page_config(page_title="Custos Indiretos", layout="wide")
 
 # Aumentamos a fonte do valor aqui na função do card
