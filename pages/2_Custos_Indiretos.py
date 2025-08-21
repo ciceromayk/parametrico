@@ -66,8 +66,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
     df = pd.DataFrame(dados_tabela)
 
     # PASSO 2: Configurar o AgGrid
-    st.write("### Edite os percentuais de cada custo abaixo:")
-    
+   
     gb = GridOptionsBuilder.from_dataframe(df)
     
     jscode_formatador_moeda = JsCode("""
@@ -77,7 +76,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         }
     """)
 
-    gb.configure_column("Item", headerName="Item", width=350, resizable=False)
+    gb.configure_column("Item", headerName="Item", width=1250, resizable=False)
     gb.configure_column("%", headerName="%", editable=True, width=100, resizable=False,
                         type=["numericColumn", "numberColumnFilter", "customNumericFormat"],
                         precision=2)
@@ -87,13 +86,14 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
     gridOptions = gb.build()
 
     # SUGESTÃO DE DESIGN: Centralizar a tabela
+    
     _ , col_tabela, _ = st.columns([1, 10, 1])
     with col_tabela:
         grid_response = AgGrid(
             df,
             gridOptions=gridOptions,
             height=500,
-            width='100%',
+            width='60%',
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
             try_convert_numeric_dtypes=True,
@@ -113,7 +113,6 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
 
     # SUGESTÃO DE DESIGN: Adicionar espaçamento e título para o resumo
     st.write("<br><br>", unsafe_allow_html=True)
-    st.subheader("Resumo do Custo Indireto")
     
     # Exibição do card do total
     _, col_metrica = st.columns([2, 1])
