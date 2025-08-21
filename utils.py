@@ -48,4 +48,16 @@ DEFAULT_CUSTOS_INDIRETOS = {
     "Condomínio":                      (0.0, 0.0, 0.5),
     "IPTU":                            (0.05, 0.07, 0.2),
     "Preparação do Terreno":           (0.2, 0.33, 1.0),
-    "Financi
+    "Financiamento Bancário":            (1.0, 1.9, 3.0),
+}
+DEFAULT_CUSTOS_INDIRETOS_FIXOS = {}
+
+# --- FUNÇÕES DE GESTÃO DE DADOS ---
+def init_storage(path):
+    if not os.path.exists(path):
+        with open(path, "w", encoding="utf-8") as f: json.dump([], f, ensure_ascii=False, indent=4)
+def load_json(path):
+    init_storage(path); 
+    with open(path, "r", encoding="utf-8") as f: return json.load(f)
+def save_json(data, path):
+    with open(path, "w", encoding="utf-8") as f: json.dump(data,
