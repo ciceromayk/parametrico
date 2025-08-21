@@ -5,6 +5,24 @@ import os
 from datetime import datetime
 import plotly.express as px
 
+from utils import (
+    save_project, delete_project, fmt_br, render_metric_card, 
+    handle_percentage_redistribution, TIPOS_PAVIMENTO, DEFAULT_PAVIMENTO, ETAPAS_OBRA
+)
+
+st.set_page_config(page_title="Orçamento Direto", layout="wide")
+
+if "projeto_info" not in st.session_state:
+    st.error("Nenhum projeto carregado. Por favor, selecione um projeto na página inicial.")
+    st.page_link("app.py", label="Voltar para a seleção de projetos")
+    st.stop()
+
+def page_budget_tool():
+    info = st.session_state.projeto_info
+    if 'pavimentos' not in st.session_state:
+        st.session_state.pavimentos = [p.copy() for p in info.get('pavimentos', [DEFAULT_PAVIMENTO.copy()])]
+    
+
 # --- 1. CONFIGURAÇÃO E GESTÃO DE DADOS ---
 JSON_PATH = "projects.json"
 
