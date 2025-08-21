@@ -76,12 +76,12 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         }
     """)
 
-    gb.configure_column("Item", headerName="Item", width=100, resizable=True)
-    gb.configure_column("%", headerName="%", editable=True, width=100, resizable=False,
-                        type=["numericColumn", "numberColumnFilter", "customNumericFormat"],
-                        precision=2)
-    gb.configure_column("Custo (R$)", headerName="Custo (R$)", valueFormatter=jscode_formatador_moeda, width=200, resizable=False,
-                        type=["numericColumn", "numberColumnFilter"])
+    gb.configure_column("Item", headerName="Item", flex=2, resizable=True) # <-- Terá o dobro da largura das outras
+    gb.configure_column("%", headerName="%", editable=True, flex=1, resizable=False,
+                    type=["numericColumn", "numberColumnFilter", "customNumericFormat"],
+                    precision=2)
+    gb.configure_column("Custo (R$)", headerName="Custo (R$)", valueFormatter=jscode_formatador_moeda, flex=1, resizable=False,
+                    type=["numericColumn", "numberColumnFilter"])
     
     gridOptions = gb.build()
 
