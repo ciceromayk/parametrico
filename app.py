@@ -7,6 +7,9 @@ import plotly.express as px
 
 # --- 1. CONFIGURAÇÃO E GESTÃO DE DADOS ---
 JSON_PATH = "projects.json"
+# <<< 2. VALORES PADRÃO FIXOS
+CUB_PADRAO = 4500.0
+CUSTO_CONTENCAO_M2_PADRAO = 400.0
 
 def init_storage():
     if not os.path.exists(JSON_PATH):
@@ -79,44 +82,29 @@ def render_metric_card(title, value, color="#31708f"):
     """
 
 def handle_percentage_redistribution(etapas_key='etapas_percentuais'):
-    """Lógica para redistribuir percentuais quando um slider é alterado."""
     if 'previous_etapas' not in st.session_state:
         st.session_state.previous_etapas = st.session_state[etapas_key].copy()
-
     current_percentages = st.session_state[etapas_key]
     previous_percentages = st.session_state.previous_etapas
-    
-    if current_percentages == previous_percentages:
-        return # Nenhuma mudança
-
-    # Encontra qual slider foi alterado
+    if current_percentages == previous_percentages: return
     changed_etapa = None
     for etapa, percent in current_percentages.items():
-        if percent != previous_percentages.get(etapa):
-            changed_etapa = etapa
-            break
-
+        if percent != previous_percentages.get(etapa): changed_etapa = etapa; break
     if changed_etapa:
         delta = current_percentages[changed_etapa] - previous_percentages[changed_etapa]
         total_others = sum(v for k, v in previous_percentages.items() if k != changed_etapa)
-
         if total_others > 0:
             for etapa, percent in current_percentages.items():
                 if etapa != changed_etapa:
                     proportion = previous_percentages[etapa] / total_others
                     new_percent = percent - (delta * proportion)
-                    current_percentages[etapa] = max(0, new_percent) # Evita valores negativos
-
-        # Normaliza para garantir que a soma seja exatamente 100
+                    current_percentages[etapa] = max(0, new_percent)
         total_sum = sum(current_percentages.values())
         if total_sum > 0:
             factor = 100 / total_sum
-            for etapa in current_percentages:
-                current_percentages[etapa] *= factor
-    
+            for etapa in current_percentages: current_percentages[etapa] *= factor
     st.session_state.previous_etapas = current_percentages.copy()
     st.rerun()
-
 
 # --- 4. TELAS DA APLICAÇÃO ---
 def page_project_selection():
@@ -126,8 +114,7 @@ def page_project_selection():
     if escolha != "➕ Novo Projeto":
         pid = int(escolha.split("–")[0].strip())
         if st.button("Carregar Projeto", use_container_width=True, type="primary"):
-            st.session_state.projeto_info = load_project(pid)
-            st.rerun()
+            st.session_state.projeto_info = load_project(pid); st.rerun()
     st.markdown("---")
     st.subheader("Criar Novo Projeto")
     with st.form("new_project_form"):
@@ -140,13 +127,11 @@ def page_project_selection():
             if not nome: st.error("O nome do projeto é obrigatório."); return
             info = {
                 "nome": nome, "area_terreno": area_terreno, "area_privativa": area_privativa, "num_unidades": num_unidades, "endereco": "",
-                "custos_config": {"cub": 4500.0, "outros": 0.0, "custo_contencao_m2": 400.0},
+                "custos_config": {"outros": 0.0}, # <<< 2. CONFIG DE CUSTOS SIMPLIFICADA
                 "etapas_percentuais": ETAPAS_OBRA, "pavimentos": [DEFAULT_PAVIMENTO]
             }
-            pid = save_project(info)
-            info["id"] = pid
-            st.session_state.projeto_info = info
-            st.rerun()
+            pid = save_project(info); info["id"] = pid
+            st.session_state.projeto_info = info; st.rerun()
 
 def page_budget_tool():
     info = st.session_state.projeto_info
@@ -165,18 +150,16 @@ def page_budget_tool():
 
         st.markdown("---")
         st.header("💰 Configuração de Custos")
-        custos_config = info.get('custos_config', {"cub": 4500.0, "outros": 0.0, "custo_contencao_m2": 400.0})
-        custos_config['cub'] = st.number_input("CUB (R$/m²)", 0.0, custos_config.get('cub', 4500.0), step=100.0, format="%.2f")
+        # <<< 2. INPUTS DE CUB E CONTENÇÃO REMOVIDOS
+        custos_config = info.get('custos_config', {"outros": 0.0})
         custos_config['outros'] = st.number_input("Outros Custos Diretos (R$)", 0.0, custos_config.get('outros', 0.0), format="%.2f")
-        custos_config['custo_contencao_m2'] = st.number_input("Custo Contenção (R$/m² subsolo)", 0.0, custos_config.get('custo_contencao_m2', 400.0), format="%.2f")
         info['custos_config'] = custos_config
 
         st.markdown("---")
         if st.button("💾 Salvar Alterações", use_container_width=True, type="primary"):
             info['pavimentos'] = st.session_state.pavimentos
             if 'etapas_percentuais' in st.session_state: info['etapas_percentuais'] = st.session_state.etapas_percentuais
-            save_project(info)
-            st.success("Projeto salvo!")
+            save_project(info); st.success("Projeto salvo!")
         if st.button(" Mudar de Projeto"):
             del st.session_state.projeto_info
             if 'pavimentos' in st.session_state: del st.session_state.pavimentos
@@ -201,7 +184,10 @@ def page_budget_tool():
 
     col_widths = [3, 3, 1, 1.2, 1.5, 1.5, 1.5, 1.5]
     headers = ["Nome", "Tipo", "Rep.", "Coef.", "Área (m²)", "Área Eq. Total", "Área Constr.", "Considerar A.C?"]
-    header_cols = st.columns(col_widths); [hc.markdown(f'**{title}**') for hc, title in zip(header_cols, headers)]
+    header_cols = st.columns(col_widths)
+    # <<< 1. CORREÇÃO DO ERRO DE RENDERIZAÇÃO
+    for hc, title in zip(header_cols, headers):
+        hc.markdown(f'**{title}**')
 
     for i, pav in enumerate(st.session_state.pavimentos):
         cols = st.columns(col_widths)
@@ -222,11 +208,10 @@ def page_budget_tool():
         df["area_total"] = df["area"] * df["rep"]
         df["area_eq"] = df["area_total"] * df["coef"]
         df["area_constr"] = df.apply(lambda r: r["area_total"] if r["constr"] else 0.0, axis=1)
-        df["custo_direto"] = df["area_eq"] * custos_config['cub']
+        df["custo_direto"] = df["area_eq"] * CUB_PADRAO # <<< 2. USA CUB PADRÃO
         
-        # Lógica de Custo de Contenção
         area_subsolo = df[df['tipo'].str.contains("Garagem \(Subsolo\)", regex=True)]["area_total"].sum()
-        custo_contencao = area_subsolo * custos_config['custo_contencao_m2']
+        custo_contencao = area_subsolo * CUSTO_CONTENCAO_M2_PADRAO # <<< 2. USA CUSTO DE CONTENÇÃO PADRÃO
         
         custo_direto_total = df["custo_direto"].sum()
         custo_final_projeto = custo_direto_total + custos_config['outros'] + custo_contencao
@@ -234,19 +219,17 @@ def page_budget_tool():
         st.markdown("---")
         st.markdown("## 📊 Análise e Resumo Financeiro")
         
-        # Cards Horizontais
         total_constr = df["area_constr"].sum()
         custo_por_ac = custo_final_projeto / total_constr if total_constr > 0 else 0.0
         custo_med_unit = custo_final_projeto / info["num_unidades"] if info["num_unidades"] > 0 else 0.0
         
-        card_cols = st.columns(5)
+        # <<< 2. CARD DE CONTENÇÃO REMOVIDO
+        card_cols = st.columns(4)
         card_cols[0].markdown(render_metric_card("Custo Final do Projeto", f"R$ {fmt_br(custo_final_projeto)}", cores[3]), unsafe_allow_html=True)
         card_cols[1].markdown(render_metric_card("Custo Médio / Unidade", f"R$ {fmt_br(custo_med_unit)}", "#337ab7"), unsafe_allow_html=True)
         card_cols[2].markdown(render_metric_card("Custo / m² (Área Constr.)", f"R$ {fmt_br(custo_por_ac)}", cores[1]), unsafe_allow_html=True)
         card_cols[3].markdown(render_metric_card("Área Construída Total", f"{fmt_br(total_constr)} m²", cores[2]), unsafe_allow_html=True)
-        card_cols[4].markdown(render_metric_card("Custo de Contenção", f"R$ {fmt_br(custo_contencao)}", "#6f42c1"), unsafe_allow_html=True)
         
-        # Gráfico abaixo dos cards
         custo_por_tipo = df.groupby("tipo")["custo_direto"].sum().reset_index()
         fig = px.bar(custo_por_tipo, x='tipo', y='custo_direto', text_auto='.2s', title="Custo Direto por Tipo de Pavimento")
         fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False); fig.update_layout(xaxis_title=None, yaxis_title="Custo (R$)")
@@ -256,22 +239,14 @@ def page_budget_tool():
         st.markdown("### 📑 Detalhamento do Empreendimento")
         df_display = df.rename(columns={"nome": "Nome", "tipo": "Tipo", "rep": "Rep.", "coef": "Coef.", "area": "Área (m²)", "area_eq": "Área Eq. Total (m²)", "area_constr": "Área Constr. (m²)", "custo_direto": "Custo Direto (R$)"})
         colunas_a_exibir = ["Nome", "Tipo", "Rep.", "Coef.", "Área (m²)", "Área Eq. Total (m²)", "Área Constr. (m²)", "Custo Direto (R$)"]
-        
-        st.dataframe(df_display[colunas_a_exibir], use_container_width=True) # Tabela com largura total e sem formatação HTML complexa
+        st.dataframe(df_display[colunas_a_exibir], use_container_width=True)
 
         st.markdown("---")
         with st.expander("💸 Custo Direto por Etapa da Obra", expanded=True):
-            if 'etapas_percentuais' not in st.session_state:
-                st.session_state.etapas_percentuais = info.get('etapas_percentuais', ETAPAS_OBRA).copy()
-            if 'previous_etapas' not in st.session_state:
-                st.session_state.previous_etapas = st.session_state.etapas_percentuais.copy()
+            if 'etapas_percentuais' not in st.session_state: st.session_state.etapas_percentuais = info.get('etapas_percentuais', ETAPAS_OBRA).copy()
+            if 'previous_etapas' not in st.session_state: st.session_state.previous_etapas = st.session_state.etapas_percentuais.copy()
 
-            # Layout em colunas
-            col1, col2, col3 = st.columns([2, 2, 1.5])
-            col1.markdown("**Etapa**")
-            col2.markdown("**Percentual (%)**")
-            col3.markdown("**Custo da Etapa (R$)**")
-
+            col1, col2, col3 = st.columns([2, 2, 1.5]); col1.markdown("**Etapa**"); col2.markdown("**Percentual (%)**"); col3.markdown("**Custo da Etapa (R$)**")
             etapas_data = []
             for etapa, percent_padrao in st.session_state.etapas_percentuais.items():
                 col1, col2, col3 = st.columns([2, 2, 1.5])
@@ -280,13 +255,23 @@ def page_budget_tool():
                 st.session_state.etapas_percentuais[etapa] = percent_atual
                 custo_etapa = custo_direto_total * (percent_atual / 100)
                 col3.container(height=38, border=False).write(f"R$ {fmt_br(custo_etapa)}")
-                etapas_data.append({"Etapa": etapa, "Percentual (%)": percent_atual, "Custo da Etapa (R$)": custo_etapa})
+                etapas_data.append({"Etapa": etapa, "Percentual (%)": f"{percent_atual:.1f}%", "Custo da Etapa (R$)": custo_etapa})
+            
+            handle_percentage_redistribution()
 
-            handle_percentage_redistribution() # Chama a função de redistribuição
-
+            # <<< 2. LÓGICA PARA ADICIONAR CONTENÇÃO NA TABELA
+            if custo_contencao > 0:
+                etapas_data.append({"Etapa": "Contenções de Subsolo", "Percentual (%)": "-", "Custo da Etapa (R$)": custo_contencao})
+            
             df_etapas = pd.DataFrame(etapas_data)
-            soma_row = pd.DataFrame([{"Etapa": "<strong>TOTAL</strong>", "Percentual (%)": f"<strong>{df_etapas['Percentual (%)'].sum():.1f}%</strong>", "Custo da Etapa (R$)": f"<strong>R$ {fmt_br(df_etapas['Custo da Etapa (R$)'].sum())}</strong>"}])
-            st.markdown(soma_row.to_html(escape=False, index=False, header=False, justify="right"), unsafe_allow_html=True)
+            
+            # Adiciona linha de Total
+            custo_total_etapas = df_etapas["Custo da Etapa (R$)"].sum()
+            df_etapas["Custo da Etapa (R$)"] = df_etapas["Custo da Etapa (R$)"].apply(lambda v: f"R$ {fmt_br(v)}")
+            total_row = pd.DataFrame([{"Etapa": "<strong>TOTAL</strong>", "Percentual (%)": "<strong>-</strong>", "Custo da Etapa (R$)": f"<strong>R$ {fmt_br(custo_total_etapas)}</strong>"}])
+            df_final_etapas = pd.concat([df_etapas, total_row], ignore_index=True)
+            
+            st.markdown(df_final_etapas.to_html(escape=False, index=False, justify="right", header=False), unsafe_allow_html=True)
             
         st.markdown("---")
         if st.button("🗑️ Excluir Projeto"):
