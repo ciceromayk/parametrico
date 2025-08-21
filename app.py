@@ -7,9 +7,6 @@ import plotly.express as px
 
 # --- 1. CONFIGURAÇÃO E GESTÃO DE DADOS ---
 JSON_PATH = "projects.json"
-# <<< 2. VALORES PADRÃO FIXOS
-CUB_PADRAO = 4500.0
-CUSTO_CONTENCAO_M2_PADRAO = 400.0
 
 def init_storage():
     if not os.path.exists(JSON_PATH):
@@ -120,14 +117,14 @@ def page_project_selection():
     with st.form("new_project_form"):
         nome = st.text_input("Nome do Projeto")
         c1, c2, c3 = st.columns(3)
-        area_terreno = c1.number_input("Área Terreno (m²)", 0.0, format="%.2f")
-        area_privativa = c2.number_input("Área Privativa Total (m²)", 0.0, format="%.2f")
-        num_unidades = c3.number_input("Nº de Unidades", 1, step=1)
+        area_terreno = c1.number_input("Área Terreno (m²)", min_value=0.0, format="%.2f")
+        area_privativa = c2.number_input("Área Privativa Total (m²)", min_value=0.0, format="%.2f")
+        num_unidades = c3.number_input("Nº de Unidades", min_value=1, step=1)
         if st.form_submit_button("💾 Criar e Carregar Projeto", use_container_width=True):
             if not nome: st.error("O nome do projeto é obrigatório."); return
             info = {
                 "nome": nome, "area_terreno": area_terreno, "area_privativa": area_privativa, "num_unidades": num_unidades, "endereco": "",
-                "custos_config": {"outros": 0.0}, # <<< 2. CONFIG DE CUSTOS SIMPLIFICADA
+                "custos_config": {"cub": 4500.0, "outros": 0.0, "custo_contencao_m2": 400.0},
                 "etapas_percentuais": ETAPAS_OBRA, "pavimentos": [DEFAULT_PAVIMENTO]
             }
             pid = save_project(info); info["id"] = pid
@@ -142,7 +139,7 @@ def page_budget_tool():
         st.title(f"Projeto: {info['nome']}")
         with st.expander("📝 Editar Dados Gerais"):
             with st.form("edit_form"):
-                info['nome'] = st.text_input("Nome", info['nome'])
+                info['nome'] = st.text_input("Nome", value=info['nome'])
                 info['area_terreno'] = st.number_input("Área Terreno (m²)", value=info['area_terreno'])
                 info['area_privativa'] = st.number_input("Área Privativa (m²)", value=info['area_privativa'])
                 info['num_unidades'] = st.number_input("Unidades", value=info['num_unidades'], step=1)
@@ -150,9 +147,11 @@ def page_budget_tool():
 
         st.markdown("---")
         st.header("💰 Configuração de Custos")
-        # <<< 2. INPUTS DE CUB E CONTENÇÃO REMOVIDOS
-        custos_config = info.get('custos_config', {"outros": 0.0})
-        custos_config['outros'] = st.number_input("Outros Custos Diretos (R$)", 0.0, custos_config.get('outros', 0.0), format="%.2f")
+        custos_config = info.get('custos_config', {"cub": 4500.0, "outros": 0.0, "custo_contencao_m2": 400.0})
+        # <<< 2. REINTRODUZIDO: Inputs para CUB e Custo de Contenção
+        custos_config['cub'] = st.number_input("CUB (R$/m²)", min_value=0.0, value=custos_config.get('cub', 4500.0), step=100.0, format="%.2f")
+        custos_config['outros'] = st.number_input("Outros Custos Diretos (R$)", min_value=0.0, value=custos_config.get('outros', 0.0), format="%.2f")
+        custos_config['custo_contencao_m2'] = st.number_input("Custo Contenção (R$/m² subsolo)", min_value=0.0, value=custos_config.get('custo_contencao_m2', 400.0), format="%.2f")
         info['custos_config'] = custos_config
 
         st.markdown("---")
@@ -185,19 +184,19 @@ def page_budget_tool():
     col_widths = [3, 3, 1, 1.2, 1.5, 1.5, 1.5, 1.5]
     headers = ["Nome", "Tipo", "Rep.", "Coef.", "Área (m²)", "Área Eq. Total", "Área Constr.", "Considerar A.C?"]
     header_cols = st.columns(col_widths)
-    # <<< 1. CORREÇÃO DO ERRO DE RENDERIZAÇÃO
-    for hc, title in zip(header_cols, headers):
-        hc.markdown(f'**{title}**')
+    for hc, title in zip(header_cols, headers): hc.markdown(f'**{title}**')
 
     for i, pav in enumerate(st.session_state.pavimentos):
         cols = st.columns(col_widths)
         pav['nome'] = cols[0].text_input("nome", pav['nome'], key=f"nome_{i}", label_visibility="collapsed")
         pav['tipo'] = cols[1].selectbox("tipo", list(TIPOS_PAVIMENTO.keys()), list(TIPOS_PAVIMENTO.keys()).index(pav.get('tipo', next(iter(TIPOS_PAVIMENTO)))), key=f"tipo_{i}", label_visibility="collapsed")
-        pav['rep'] = cols[2].number_input("rep", 1, value=pav['rep'], step=1, key=f"rep_{i}", label_visibility="collapsed")
+        # <<< 1. CORREÇÃO: Usando argumentos nomeados para evitar erros
+        pav['rep'] = cols[2].number_input("rep", min_value=1, value=pav['rep'], step=1, key=f"rep_{i}", label_visibility="collapsed")
         min_c, max_c = TIPOS_PAVIMENTO[pav['tipo']]
         pav['coef'] = min_c if min_c == max_c else cols[3].slider("coef", min_c, max_c, float(pav.get('coef', min_c)), 0.01, format="%.2f", key=f"coef_{i}", label_visibility="collapsed")
         if min_c == max_c: cols[3].markdown(f"<div style='text-align:center; padding-top: 8px;'>{pav['coef']:.2f}</div>", unsafe_allow_html=True)
-        pav['area'] = cols[4].number_input("area", 0.0, pav['area'], 1.0, format="%.2f", key=f"area_{i}", label_visibility="collapsed")
+        # <<< 1. CORREÇÃO: Usando argumentos nomeados para evitar erros
+        pav['area'] = cols[4].number_input("area", min_value=0.0, value=pav['area'], step=10.0, format="%.2f", key=f"area_{i}", label_visibility="collapsed")
         pav['constr'] = cols[7].selectbox("incluir", ["Sim", "Não"], 0 if pav.get('constr', True) else 1, key=f"constr_{i}", label_visibility="collapsed") == "Sim"
         total_i, area_eq_i = pav['area'] * pav['rep'], (pav['area'] * pav['rep']) * pav['coef']
         cols[5].markdown(f"<div style='text-align:center; padding-top: 8px;'>{fmt_br(area_eq_i)}</div>", unsafe_allow_html=True)
@@ -208,13 +207,15 @@ def page_budget_tool():
         df["area_total"] = df["area"] * df["rep"]
         df["area_eq"] = df["area_total"] * df["coef"]
         df["area_constr"] = df.apply(lambda r: r["area_total"] if r["constr"] else 0.0, axis=1)
-        df["custo_direto"] = df["area_eq"] * CUB_PADRAO # <<< 2. USA CUB PADRÃO
+        # <<< 2. REINTRODUZIDO: Usando CUB da configuração
+        df["custo_direto"] = df["area_eq"] * custos_config['cub']
         
         area_subsolo = df[df['tipo'].str.contains("Garagem \(Subsolo\)", regex=True)]["area_total"].sum()
-        custo_contencao = area_subsolo * CUSTO_CONTENCAO_M2_PADRAO # <<< 2. USA CUSTO DE CONTENÇÃO PADRÃO
+        # <<< 2. REINTRODUZIDO: Usando Custo de Contenção da configuração
+        custo_contencao = area_subsolo * custos_config['custo_contencao_m2']
         
         custo_direto_total = df["custo_direto"].sum()
-        custo_final_projeto = custo_direto_total + custos_config['outros'] + custo_contencao
+        custo_final_projeto = custo_direto_total + custos_config.get('outros', 0.0) + custo_contencao
 
         st.markdown("---")
         st.markdown("## 📊 Análise e Resumo Financeiro")
@@ -223,7 +224,6 @@ def page_budget_tool():
         custo_por_ac = custo_final_projeto / total_constr if total_constr > 0 else 0.0
         custo_med_unit = custo_final_projeto / info["num_unidades"] if info["num_unidades"] > 0 else 0.0
         
-        # <<< 2. CARD DE CONTENÇÃO REMOVIDO
         card_cols = st.columns(4)
         card_cols[0].markdown(render_metric_card("Custo Final do Projeto", f"R$ {fmt_br(custo_final_projeto)}", cores[3]), unsafe_allow_html=True)
         card_cols[1].markdown(render_metric_card("Custo Médio / Unidade", f"R$ {fmt_br(custo_med_unit)}", "#337ab7"), unsafe_allow_html=True)
@@ -259,18 +259,14 @@ def page_budget_tool():
             
             handle_percentage_redistribution()
 
-            # <<< 2. LÓGICA PARA ADICIONAR CONTENÇÃO NA TABELA
             if custo_contencao > 0:
                 etapas_data.append({"Etapa": "Contenções de Subsolo", "Percentual (%)": "-", "Custo da Etapa (R$)": custo_contencao})
             
             df_etapas = pd.DataFrame(etapas_data)
-            
-            # Adiciona linha de Total
             custo_total_etapas = df_etapas["Custo da Etapa (R$)"].sum()
             df_etapas["Custo da Etapa (R$)"] = df_etapas["Custo da Etapa (R$)"].apply(lambda v: f"R$ {fmt_br(v)}")
             total_row = pd.DataFrame([{"Etapa": "<strong>TOTAL</strong>", "Percentual (%)": "<strong>-</strong>", "Custo da Etapa (R$)": f"<strong>R$ {fmt_br(custo_total_etapas)}</strong>"}])
             df_final_etapas = pd.concat([df_etapas, total_row], ignore_index=True)
-            
             st.markdown(df_final_etapas.to_html(escape=False, index=False, justify="right", header=False), unsafe_allow_html=True)
             
         st.markdown("---")
