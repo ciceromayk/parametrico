@@ -76,7 +76,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         }
     """)
 
-    gb.configure_column("Item", headerName="Item", flex=2, resizable=True) # <-- Terá o dobro da largura das outras
+    gb.configure_column("Item", headerName="Item", flex=5, resizable=True) 
     gb.configure_column("%", headerName="%", editable=True, flex=1, resizable=False,
                     type=["numericColumn", "numberColumnFilter", "customNumericFormat"],
                     precision=2)
