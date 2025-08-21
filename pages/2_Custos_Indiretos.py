@@ -28,94 +28,51 @@ custos_config = info.get('custos_config', {})
 preco_medio_venda_m2 = custos_config.get('preco_medio_venda_m2', 10000.0)
 vgv_total = info.get('area_privativa', 0) * preco_medio_venda_m2
 
+# Substitua todo o seu bloco 'with st.expander(...)' por este
+
 with st.expander("Detalhamento de Custos Indiretos", expanded=True):
     st.subheader("Custos Indiretos (calculados sobre o VGV)")
 
+    # (A lógica de inicialização do session_state continua a mesma)
     if 'custos_indiretos_percentuais' not in st.session_state:
-        # (Lógica de inicialização do session_state... sem alteração)
         custos_salvos = info.get('custos_indiretos_percentuais', {})
         if custos_salvos and isinstance(list(custos_salvos.values())[0], (int, float)):
             st.session_state.custos_indiretos_percentuais = {item: {"percentual": val, "fonte": "Manual"} for item, val in custos_salvos.items()}
         else:
             st.session_state.custos_indiretos_percentuais = {item: custos_salvos.get(item, {"percentual": vals[1], "fonte": "Manual"}) for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
 
-    # MUDANÇA 1: Melhorando o cabeçalho
-    st.markdown("""
-    <style>
-        .header-style {
-            font-size: 16px;
-            font-weight: bold;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    header_cols = st.columns([12, 1, 12])
-    with header_cols[0]:
-        st.markdown('<p class="header-style">Item / Seu Projeto (%)</p>', unsafe_allow_html=True)
-    with header_cols[2]:
-        st.markdown('<p class="header-style">Item / Seu Projeto (%)</p>', unsafe_allow_html=True)
-    
-    st.divider()
-    
-    items_list = list(DEFAULT_CUSTOS_INDIRETOS.items())
-    mid_point = (len(items_list) + 1) // 2
-    
-    # MUDANÇA 2: Coluna central para a linha vertical
-    col1, vert_line, col2 = st.columns([12, 1, 12])
+    # --- PASSO 1: Preparar os Dados para o Data Editor ---
 
-    with vert_line:
-         st.markdown(f'<div style="width: 1px; background-color: #e1e1e1; height: 100%; margin: 0 auto;"></div>', unsafe_allow_html=True)
+    # Criamos uma lista de dicionários, que é um formato perfeito para o Pandas
+    dados_tabela = []
+    for item, (min_val, default_val, max_val) in DEFAULT_CUSTOS_INDIRETOS.items():
+        percentual_atual = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val})['percentual']
+        custo_calculado = vgv_total * (percentual_atual / 100)
+        
+        dados_tabela.append({
+            "Item": item,
+            "Seu Projeto (%)": percentual_atual,
+            "Custo (R$)": custo_calculado,
+            # Adicionamos colunas "escondidas" para guardar os limites
+            "_min": min_val,
+            "_max": max_val
+        })
 
-    custo_indireto_calculado = 0
+    # Criamos o DataFrame do Pandas
+    df = pd.DataFrame(dados_tabela)
 
-    # A função render_item continua a mesma
-    def render_item(item_tuple, container):
-        item, (min_val, default_val, max_val) = item_tuple
-        c = container.columns([2, 1, 1.5, 1])
-        c[0].container(height=38, border=False).write(item)
-        current_percent = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val})['percentual']
-        final_percent = c[1].number_input(
-            "percentual", min_value=min_val, max_value=max_val, value=float(current_percent),
-            step=0.1, format="%.1f", key=f"input_indireto_{item}", label_visibility="collapsed"
-        )
-        if max_val > min_val:
-            progress_value = (final_percent - min_val) / (max_val - min_val)
-        else:
-            progress_value = 0.0
-        c[2].progress(progress_value)
-        if final_percent != current_percent:
-            st.session_state.custos_indiretos_percentuais[item]['percentual'] = final_percent
-            st.rerun()
-        custo_item = vgv_total * (final_percent / 100)
-        c[3].markdown(f"<p style='text-align: right; line-height: 2.5;'>R$ {fmt_br(custo_item)}</p>", unsafe_allow_html=True)
-        return custo_item
+    st.write("### Dados Preparados (visão de teste):")
+    st.dataframe(df) # Apenas para a gente ver como o DataFrame ficou
 
-    # MUDANÇA 3: Renderizando com as cores alternadas
-    with col1:
-        for i, item_tuple in enumerate(items_list[:mid_point]):
-            bg_color = "#f9f9f9" if i % 2 != 0 else "white"
-            # Usamos st.container com uma borda para simular o fundo
-            with st.container():
-                st.markdown(f'<div style="background-color: {bg_color}; border-radius: 8px; padding: 0px 10px;">', unsafe_allow_html=True)
-                custo_indireto_calculado += render_item(item_tuple, st)
-                st.markdown('</div>', unsafe_allow_html=True)
-
-    with col2:
-        for i, item_tuple in enumerate(items_list[mid_point:]):
-            bg_color = "#f9f9f9" if i % 2 != 0 else "white"
-            with st.container():
-                st.markdown(f'<div style="background-color: {bg_color}; border-radius: 8px; padding: 0px 10px;">', unsafe_allow_html=True)
-                custo_indireto_calculado += render_item(item_tuple, st)
-                st.markdown('</div>', unsafe_allow_html=True)
+    custo_indireto_calculado = df["Custo (R$)"].sum()
 
     st.divider()
-    
+
+    # (O card do total continua o mesmo por enquanto)
     _, col_metrica = st.columns([2, 1])
     with col_metrica:
-        # --- MUDANÇA PRINCIPAL AQUI ---
-        # Trocamos a função 'card' pela 'result', que sabemos que existe.
-        sac.result(
-            label='Custo Indireto Total',
-            description=f'R$ {fmt_br(custo_indireto_calculado)}',
-            status='success'
+        card_metric(
+            label="Custo Indireto Total",
+            value=f"R$ {fmt_br(custo_indireto_calculado)}",
+            icon_name="cash-coin"
         )
