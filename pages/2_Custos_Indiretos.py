@@ -125,3 +125,4 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
             label="Custo Indireto Total",
             value=f"R$ {fmt_br(custo_indireto_calculado)}",
             icon_name="cash-coin"
+        )
