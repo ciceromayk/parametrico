@@ -35,9 +35,13 @@ vgv_total = info.get('area_privativa', 0) * preco_medio_venda_m2
 with st.expander("Detalhamento de Custos Totais", expanded=True):
     st.subheader("Custos Indiretos (calculados sobre o VGV)")
 
+    # <<< CORREÇÃO: Verificação e migração de dados de custos indiretos
     if 'custos_indiretos_percentuais' not in st.session_state:
         custos_salvos = info.get('custos_indiretos_percentuais', {})
-        st.session_state.custos_indiretos_percentuais = {item: {"percentual": custos_salvos.get(item, vals[1]), "fonte": "Manual"} for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
+        if custos_salvos and isinstance(list(custos_salvos.values())[0], (int, float)):
+             st.session_state.custos_indiretos_percentuais = {item: {"percentual": val, "fonte": "Manual"} for item, val in custos_salvos.items()}
+        else:
+            st.session_state.custos_indiretos_percentuais = {item: custos_salvos.get(item, {"percentual": vals[1], "fonte": "Manual"}) for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
 
     cols = st.columns([4, 2, 1])
     cols[0].markdown("**Item**")
