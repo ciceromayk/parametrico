@@ -44,7 +44,7 @@ DEFAULT_CUSTOS_INDIRETOS = {
     "Assessoria Técnica":                (0.5, 0.7, 1.5),
     "Projetos":                          (0.4, 0.52, 1.5),
     "Licenças e Incorporação":         (0.1, 0.2, 0.5),
-    "Outorga Onerosa":                 (0.0, 0.0, 2.0),
+    "Outorga Onerosa":                 (0.0, 0.0, 10.0), # <<< CORREÇÃO APLICADA
     "Condomínio":                      (0.0, 0.0, 0.5),
     "IPTU":                            (0.05, 0.07, 0.2),
     "Preparação do Terreno":           (0.2, 0.33, 1.0),
@@ -71,6 +71,7 @@ def save_project(info):
         pid = (max(p["id"] for p in projs) + 1) if projs else 1
         info["id"] = pid; info["created_at"] = datetime.utcnow().isoformat(); projs.append(info)
     save_json(projs, JSON_PATH)
+
 def load_project(pid):
     project_data = next((p for p in load_json(JSON_PATH) if p["id"] == pid), None)
     if project_data and 'etapas_percentuais' in project_data:
@@ -82,6 +83,7 @@ def load_project(pid):
         if custos and isinstance(list(custos.values())[0], (int, float)):
             project_data['custos_indiretos_percentuais'] = {k: {"percentual": v, "fonte": "Manual"} for k, v in custos.items()}
     return project_data
+
 def delete_project(pid):
     projs = [p for p in load_json(JSON_PATH) if p["id"] != pid]; save_json(projs, JSON_PATH)
 def save_to_historico(info, tipo_custo):
@@ -120,52 +122,43 @@ def handle_percentage_redistribution(session_key, constants_dict):
     st.session_state[previous_key] = {k: v.copy() for k, v in current.items()}; st.rerun()
 
 def render_sidebar():
-    info = st.session_state.projeto_info
-    
-    # <<< 1. TÍTULO DO APLICATIVO NO TOPO
     st.sidebar.title("Estudo de Viabilidade")
     st.sidebar.divider()
     
-    st.sidebar.subheader(f"Projeto: {info['nome']}")
-    # <<< 3. ID DO PROJETO REMOVIDO
-    
-    with st.sidebar.expander("📝 Dados Gerais do Projeto"):
-        with st.form("edit_form_sidebar"):
-            info['nome'] = st.text_input("Nome", value=info['nome'])
-            # <<< 4. GARANTIA DE FORMATAÇÃO BRASILEIRA
-            info['area_terreno'] = st.number_input("Área Terreno (m²)", value=info['area_terreno'], format="%.2f")
-            info['area_privativa'] = st.number_input("Área Privativa (m²)", value=info['area_privativa'], format="%.2f")
-            info['num_unidades'] = st.number_input("Unidades", value=info['num_unidades'], step=1)
-            st.form_submit_button("Atualizar")
-            
-    with st.sidebar.expander("📈 Configurações de Mercado"):
-         custos_config = info.get('custos_config', {})
-         custos_config['preco_medio_venda_m2'] = st.number_input("Preço Médio Venda (R$/m² privativo)", min_value=0.0, value=custos_config.get('preco_medio_venda_m2', 10000.0), format="%.2f")
-         info['custos_config'] = custos_config
-    
-    with st.sidebar.expander("💰 Configuração de Custos"):
-        custos_config = info.get('custos_config', {})
-        custos_config['custo_terreno_m2'] = st.number_input("Custo do Terreno por m² (R$)", min_value=0.0, value=custos_config.get('custo_terreno_m2', 2500.0), format="%.2f")
-        custos_config['custo_area_privativa'] = st.number_input("Custo de Construção (R$/m² privativo)", min_value=0.0, value=custos_config.get('custo_area_privativa', 4500.0), step=100.0, format="%.2f")
-        info['custos_config'] = custos_config
-        
-    st.sidebar.divider()
-    if st.sidebar.button("💾 Salvar Todas as Alterações", use_container_width=True, type="primary"):
-        if 'etapas_percentuais' in st.session_state: info['etapas_percentuais'] = st.session_state.etapas_percentuais
-        if 'custos_indiretos_percentuais' in st.session_state: info['custos_indiretos_percentuais'] = st.session_state.custos_indiretos_percentuais
-        save_project(st.session_state.projeto_info); st.sidebar.success("Projeto salvo com sucesso!")
-    
-    with st.sidebar.expander("📚 Arquivar no Histórico"):
-        if st.button("Arquivar Custos Diretos", use_container_width=True):
-            info['etapas_percentuais'] = st.session_state.etapas_percentuais; save_to_historico(info, 'direto')
-        if st.button("Arquivar Custos Indiretos", use_container_width=True):
-            info['custos_indiretos_percentuais'] = st.session_state.custos_indiretos_percentuais; save_to_historico(info, 'indireto')
-    
-    if st.sidebar.button("Mudar de Projeto", use_container_width=True):
-        keys_to_delete = ["projeto_info", "pavimentos", "etapas_percentuais", "previous_etapas_percentuais", "custos_indiretos_percentuais", "previous_custos_indiretos_percentuais"]
-        for key in keys_to_delete:
-            if key in st.session_state: del st.session_state[key]
-        st.switch_page("Início.py")
+    if "projeto_info" in st.session_state:
+        info = st.session_state.projeto_info
+        st.sidebar.subheader(f"Projeto: {info['nome']}")
+        with st.sidebar.expander("📝 Dados Gerais do Projeto"):
+            with st.form("edit_form_sidebar"):
+                info['nome'] = st.text_input("Nome", value=info['nome'])
+                info['area_terreno'] = st.number_input("Área Terreno (m²)", value=info['area_terreno'], format="%.2f")
+                info['area_privativa'] = st.number_input("Área Privativa (m²)", value=info['area_privativa'], format="%.2f")
+                info['num_unidades'] = st.number_input("Unidades", value=info['num_unidades'], step=1)
+                st.form_submit_button("Atualizar")
+        with st.sidebar.expander("📈 Configurações de Mercado"):
+             custos_config = info.get('custos_config', {})
+             custos_config['preco_medio_venda_m2'] = st.number_input("Preço Médio Venda (R$/m² privativo)", min_value=0.0, value=custos_config.get('preco_medio_venda_m2', 10000.0), format="%.2f")
+             info['custos_config'] = custos_config
+        with st.sidebar.expander("💰 Configuração de Custos"):
+            custos_config = info.get('custos_config', {})
+            custos_config['custo_terreno_m2'] = st.number_input("Custo do Terreno por m² (R$)", min_value=0.0, value=custos_config.get('custo_terreno_m2', 2500.0), format="%.2f")
+            custos_config['custo_area_privativa'] = st.number_input("Custo de Construção (R$/m² privativo)", min_value=0.0, value=custos_config.get('custo_area_privativa', 4500.0), step=100.0, format="%.2f")
+            info['custos_config'] = custos_config
+        st.sidebar.divider()
+        if st.sidebar.button("💾 Salvar Todas as Alterações", use_container_width=True, type="primary"):
+            if 'etapas_percentuais' in st.session_state: info['etapas_percentuais'] = st.session_state.etapas_percentuais
+            if 'custos_indiretos_percentuais' in st.session_state: info['custos_indiretos_percentuais'] = st.session_state.custos_indiretos_percentuais
+            save_project(st.session_state.projeto_info); st.sidebar.success("Projeto salvo com sucesso!")
+        with st.sidebar.expander("📚 Arquivar no Histórico"):
+            if st.button("Arquivar Custos Diretos", use_container_width=True):
+                info['etapas_percentuais'] = st.session_state.etapas_percentuais; save_to_historico(info, 'direto')
+            if st.button("Arquivar Custos Indiretos", use_container_width=True):
+                info['custos_indiretos_percentuais'] = st.session_state.custos_indiretos_percentuais; save_to_historico(info, 'indireto')
+        if st.sidebar.button("Mudar de Projeto", use_container_width=True):
+            keys_to_delete = ["projeto_info", "pavimentos", "etapas_percentuais", "previous_etapas_percentuais", "custos_indiretos_percentuais", "previous_custos_indiretos_percentuais"]
+            for key in keys_to_delete:
+                if key in st.session_state: del st.session_state[key]
+            st.switch_page("Início.py")
 
 class PDF(FPDF):
     def header(self):
@@ -201,3 +194,33 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     cores = ["#00829d", "#6a42c1", "#3c763d", "#a94442"]
     cards_data = [("VGV Total", f"R$ {fmt_br(vgv_total)}", cores[0]),("Custo Total", f"R$ {fmt_br(valor_total_despesas)}", cores[1]),
                   ("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}", cores[2]),("Margem de Lucro", f"{lucratividade_percentual:.2f}%", cores[3])]
+    card_w, card_h = 45, 20
+    for i, (title, value, color) in enumerate(cards_data):
+        create_pdf_card(title, value, 10 + i * card_w, pdf.get_y(), card_w, card_h, color)
+    pdf.ln(card_h + 10)
+
+    pdf.set_font('Arial', 'B', 12); pdf.cell(0, 10, sanitize_text("Composição do Custo Total"), 0, 1, 'L')
+    if valor_total_despesas > 0:
+        p_direto = (custo_direto_total / valor_total_despesas * 100)
+        p_indireto = (custo_indireto_calculado / valor_total_despesas * 100)
+        p_terreno = (custo_terreno_total / valor_total_despesas * 100)
+        comp_cards_data = [(f"Custo Direto ({p_direto:.2f}%)", f"R$ {fmt_br(custo_direto_total)}", "#31708f"),
+                           (f"Custo Indireto ({p_indireto:.2f}%)", f"R$ {fmt_br(custo_indireto_calculado)}", "#8a6d3b"),
+                           (f"Custo do Terreno ({p_terreno:.2f}%)", f"R$ {fmt_br(custo_terreno_total)}", "#6f42c1")]
+        card_w, card_h = 60, 20
+        for i, (title, value, color) in enumerate(comp_cards_data):
+            create_pdf_card(title, value, 10 + i * card_w, pdf.get_y(), card_w, card_h, color)
+        pdf.ln(card_h + 10)
+
+    pdf.set_font('Arial', 'B', 12); pdf.cell(0, 10, sanitize_text("Indicadores por Área Construída"), 0, 1, 'L')
+    cores = ["#fd7e14", "#20c997", "#31708f", "#8a6d3b" ]
+    ind_cards_data = [("Terreno / Custo Total", f"{(custo_terreno_total / valor_total_despesas * 100 if valor_total_despesas > 0 else 0):.2f}%", cores[0]),
+                      (sanitize_text("Custo Direto / m²"), f"R$ {fmt_br(custo_direto_total / area_construida_total if area_construida_total > 0 else 0)}", cores[1]),
+                      (sanitize_text("Custo Indireto / m²"), f"R$ {fmt_br(custo_indireto_calculado / area_construida_total if area_construida_total > 0 else 0)}", cores[2]),
+                      (sanitize_text("Custo Total / m²"), f"R$ {fmt_br(valor_total_despesas / area_construida_total if area_construida_total > 0 else 0)}", cores[3])]
+    card_w, card_h = 45, 20
+    for i, (title, value, color) in enumerate(ind_cards_data):
+        create_pdf_card(title, value, 10 + i * card_w, pdf.get_y(), card_w, card_h, color)
+    pdf.ln(card_h + 10)
+    
+    return pdf.output()
