@@ -2,7 +2,7 @@
 import streamlit as st
 from utils import (
     init_storage, list_projects, save_project, load_project, delete_project,
-    DEFAULT_PAVIMENTO, ETAPAS_OBRA, DEFAULT_CUSTOS_INDIRETOS, DEFAULT_CUSTOS_INDIRETOS_FIXOS
+    DEFAULT_PAVIMENTO, ETAPAS_OBRA, DEFAULT_CUSTOS_INDIRETOS, DEFAULT_CUSTOS_INDIRETOS_FIXOS, fmt_br
 )
 
 st.set_page_config(page_title="ViEnge - Gestão de Projetos", layout="wide")
@@ -11,8 +11,8 @@ init_storage("projects.json")
 # <<< 2. CSS PARA AUMENTAR O TEXTO DO MENU NA SIDEBAR
 st.markdown("""
 <style>
-    div[data-testid="stSidebarNav"] label {
-        font-size: 18px !important;
+    div[data-testid="stSidebarNav"] li a {
+        font-size: 18px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -20,7 +20,7 @@ st.markdown("""
 
 def page_project_selection():
     """Renderiza a tela de seleção e criação de projetos."""
-    st.header("ViEnge - Gestão de Projetos")
+    st.title("ViEnge - Gestão de Projetos")
     st.markdown("Selecione um projeto existente para analisar ou crie um novo para começar.")
     
     st.divider()
@@ -33,23 +33,28 @@ def page_project_selection():
         st.info("Nenhum projeto encontrado. Crie um novo abaixo.")
     else:
         # Cabeçalho da tabela
-        cols = st.columns([1, 4, 1, 1])
+        cols = st.columns((1, 4, 2, 1, 1))
         cols[0].markdown("**ID**")
         cols[1].markdown("**Nome do Projeto**")
-        cols[2].markdown("**Carregar**")
-        cols[3].markdown("**Excluir**")
+        cols[2].markdown("**Data de Criação**")
+        cols[3].markdown("**Ação**")
+        cols[4].markdown("**Excluir**")
 
         # Linhas da tabela
-        for proj in projetos:
-            cols = st.columns([1, 4, 1, 1])
+        for proj in sorted(projetos, key=lambda p: p['id']):
+            cols = st.columns((1, 4, 2, 1, 1))
             cols[0].write(proj['id'])
             cols[1].write(proj['nome'])
             
-            if cols[2].button("Carregar", key=f"load_{proj['id']}", use_container_width=True):
+            # Formata a data para o padrão brasileiro
+            data_criacao = datetime.fromisoformat(proj.get('created_at', '1970-01-01T00:00:00')).strftime('%d/%m/%Y')
+            cols[2].write(data_criacao)
+            
+            if cols[3].button("Carregar", key=f"load_{proj['id']}", use_container_width=True):
                 st.session_state.projeto_info = load_project(proj['id'])
                 st.switch_page("pages/1_Orcamento_Direto.py")
 
-            if cols[3].button("Excluir", key=f"delete_{proj['id']}", use_container_width=True, type="secondary"):
+            if cols[4].button("🗑️", key=f"delete_{proj['id']}", use_container_width=True, help=f"Excluir projeto '{proj['nome']}'"):
                 delete_project(proj['id'])
                 st.rerun()
 
