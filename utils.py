@@ -44,7 +44,7 @@ DEFAULT_CUSTOS_INDIRETOS = {
     "Assessoria Técnica":                (0.5, 0.7, 1.5),
     "Projetos":                          (0.4, 0.52, 1.5),
     "Licenças e Incorporação":         (0.1, 0.2, 0.5),
-    "Outorga Onerosa":                 (0.0, 0.0, 10.0), # <<< CORREÇÃO APLICADA
+    "Outorga Onerosa":                 (0.0, 0.0, 10.0),
     "Condomínio":                      (0.0, 0.0, 0.5),
     "IPTU":                            (0.05, 0.07, 0.2),
     "Preparação do Terreno":           (0.2, 0.33, 1.0),
@@ -74,14 +74,19 @@ def save_project(info):
 
 def load_project(pid):
     project_data = next((p for p in load_json(JSON_PATH) if p["id"] == pid), None)
+    
+    # Migração de dados para custos diretos
     if project_data and 'etapas_percentuais' in project_data:
         etapas = project_data['etapas_percentuais']
         if etapas and isinstance(list(etapas.values())[0], (int, float)):
             project_data['etapas_percentuais'] = {k: {"percentual": v, "fonte": "Manual"} for k, v in etapas.items()}
+            
+    # <<< CORREÇÃO: Migração de dados para custos indiretos
     if project_data and 'custos_indiretos_percentuais' in project_data:
         custos = project_data['custos_indiretos_percentuais']
         if custos and isinstance(list(custos.values())[0], (int, float)):
             project_data['custos_indiretos_percentuais'] = {k: {"percentual": v, "fonte": "Manual"} for k, v in custos.items()}
+
     return project_data
 
 def delete_project(pid):
