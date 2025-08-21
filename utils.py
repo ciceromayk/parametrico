@@ -71,7 +71,7 @@ def save_project(info):
         pid = (max(p["id"] for p in projs) + 1) if projs else 1
         info["id"] = pid; info["created_at"] = datetime.utcnow().isoformat(); projs.append(info)
     save_json(projs, JSON_PATH)
-    
+
 def load_project(pid):
     project_data = next((p for p in load_json(JSON_PATH) if p["id"] == pid), None)
     
