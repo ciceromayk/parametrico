@@ -4,7 +4,7 @@ import pandas as pd
 import json
 import os
 from datetime import datetime
-from fpdf2 import FPDF
+from fpdf import FPDF
 
 # --- CONSTANTES GLOBAIS ---
 JSON_PATH = "projects.json"
