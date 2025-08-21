@@ -38,7 +38,7 @@ vgv_total = info.get('area_privativa', 0) * preco_medio_venda_m2
 with st.expander("Detalhamento de Custos Indiretos", expanded=True):
     st.subheader("Custos Indiretos (calculados sobre o VGV)")
 
-    # Inicialização do session_state
+    # Inicialização do session_state (sem alteração)
     if 'custos_indiretos_percentuais' not in st.session_state:
         custos_salvos = info.get('custos_indiretos_percentuais', {})
         if custos_salvos and isinstance(list(custos_salvos.values())[0], (int, float)):
@@ -46,20 +46,23 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         else:
             st.session_state.custos_indiretos_percentuais = {item: custos_salvos.get(item, {"percentual": vals[1], "fonte": "Manual"}) for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
 
-    # PASSO 1: Preparar os Dados para o Data Editor
+    # PASSO 1: Preparar os Dados (AGORA COM A COLUNA DE CUSTO)
     dados_tabela = []
-    # CORREÇÃO: Corrija o nome da variável na linha abaixo
     for item, (min_val, default_val, max_val) in DEFAULT_CUSTOS_INDIRETOS.items():
         percentual_atual = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val})['percentual']
+        # Calculamos o custo já aqui
+        custo_calculado = vgv_total * (percentual_atual / 100)
+        
         dados_tabela.append({
             "Item": item,
             "Seu Projeto (%)": percentual_atual,
-            "_min": min_val, # Coluna oculta para o valor mínimo
-            "_max": max_val  # Coluna oculta para o valor máximo
+            "Custo (R$)": custo_calculado, # <-- A COLUNA VOLTOU!
+            "_min": min_val,
+            "_max": max_val
         })
     df = pd.DataFrame(dados_tabela)
 
-    # PASSO 2: Exibir e Configurar o Data Editor
+    # PASSO 2: Exibir e Configurar o Data Editor (COM A NOVA COLUNA CONFIGURADA)
     st.write("### Edite os percentuais de cada custo abaixo:")
     edited_df = st.data_editor(
         df,
@@ -71,19 +74,24 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
                 max_value=df["_max"].tolist(),
                 step=0.1,
                 format="%.1f %%"
+            ),
+            # Adicionamos a configuração da coluna de Custo
+            "Custo (R$)": st.column_config.NumberColumn(
+                label="Custo (R$)",
+                # Usamos a sua função fmt_br para formatar o número
+                format="R$ %s" % fmt_br(0).replace("0,00", ",.2f"),
+                disabled=True,
             )
         },
         hide_index=True,
         use_container_width=True,
-        column_order=[col for col in df.columns if not col.startswith('_')]
+        column_order=("Item", "Seu Projeto (%)", "Custo (R$)") # Garantimos a ordem
     )
     
     # PASSO 3: Usar os Dados Editados para Recalcular e Salvar
-    # Criamos a coluna de Custo (R$) dinamicamente após a edição
-    edited_df["Custo (R$)"] = vgv_total * (edited_df["Seu Projeto (%)"] / 100)
-    custo_indireto_calculado = edited_df["Custo (R$)"].sum()
+    # Esta parte continua igual e garante a reatividade
+    custo_indireto_calculado = vgv_total * (edited_df["Seu Projeto (%)"] / 100).sum()
 
-    # Atualiza o session_state com os novos valores para persistência
     for index, row in edited_df.iterrows():
         item_nome = row["Item"]
         novo_percentual = row["Seu Projeto (%)"]
@@ -96,7 +104,6 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
     with col_metrica:
         card_metric(
             label="Custo Indireto Total",
-            # CORREÇÃO: Usando sua função fmt_br que já existe em utils.py
             value=f"R$ {fmt_br(custo_indireto_calculado)}",
             icon_name="cash-coin"
         )
