@@ -37,10 +37,7 @@ with st.expander("Detalhamento de Custos Totais", expanded=True):
 
     if 'custos_indiretos_percentuais' not in st.session_state:
         custos_salvos = info.get('custos_indiretos_percentuais', {})
-        if custos_salvos and isinstance(list(custos_salvos.values())[0], (int, float)):
-             st.session_state.custos_indiretos_percentuais = {item: {"percentual": val, "fonte": "Manual"} for item, val in custos_salvos.items()}
-        else:
-            st.session_state.custos_indiretos_percentuais = {item: custos_salvos.get(item, {"percentual": vals[1], "fonte": "Manual"}) for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
+        st.session_state.custos_indiretos_percentuais = {item: {"percentual": custos_salvos.get(item, vals[1]), "fonte": "Manual"} for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
 
     cols = st.columns([4, 2, 1])
     cols[0].markdown("**Item**")
@@ -69,7 +66,7 @@ with st.expander("Detalhamento de Custos Totais", expanded=True):
         custo_item = vgv_total * (final_percent / 100)
         c[3].markdown(f"<p style='text-align: center;'>R$ {fmt_br(custo_item)}</p>", unsafe_allow_html=True)
         custo_indireto_calculado += custo_item
-    
+
 custo_terreno_total = info.get('area_terreno', 0) * custos_config.get('custo_terreno_m2', 2500.0)
 valor_total_despesas = custo_direto_total + custo_indireto_calculado + custo_terreno_total
 lucratividade_valor = vgv_total - valor_total_despesas
@@ -105,8 +102,6 @@ with st.expander("Resultados e Indicadores Chave", expanded=True):
     res_cols[3].markdown(render_metric_card("Margem de Lucro", f"{lucratividade_percentual:.2f}%", cores[3]), unsafe_allow_html=True)
 
     st.divider()
-
-    # --- BOTÃO DE DOWNLOAD DO PDF ---
     st.subheader("Exportar Relatório")
     pdf_bytes = generate_pdf_report(
         info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
