@@ -25,13 +25,26 @@ def main():
 
     # === TELA INICIAL ===
     if "projeto_info" not in st.session_state:
-        st.title("📐 Orçamento Paramétrico de Edifícios Residenciais")
+        st.title("🏢 Orçamento Paramétrico de Edifícios Residenciais")
         st.markdown("## Informações do Projeto")
-        nome = st.text_input("Nome do Projeto")
-        area_terreno = st.number_input(
-            "Área do Terreno (m²)", min_value=0.0, format="%.2f"
-        )
-        endereco = st.text_area("Endereço")
+
+        # Agrupar os inputs em colunas para melhor organização
+        col1, col2 = st.columns(2)
+
+        with col1:
+            nome = st.text_input("Nome do Projeto")
+            area_terreno = st.number_input(
+                "Área do Terreno (m²)", min_value=0.0, format="%.2f"
+            )
+            endereco = st.text_area("Endereço")
+
+        with col2:
+            area_privativa = st.number_input(
+                "Área Total Privativa (m²)", min_value=0.0, format="%.2f"
+            )
+            num_unidades = st.number_input("Número de Unidades", min_value=1, step=1)
+            area_construida = st.checkbox("Considerar Área Construída", value=True)
+
         num_pav = st.number_input(
             "Número de Pavimentos", min_value=1, max_value=50, value=1, step=1
         )
@@ -41,21 +54,31 @@ def main():
                 "nome": nome,
                 "area_terreno": area_terreno,
                 "endereco": endereco,
+                "area_privativa": area_privativa,
+                "num_unidades": num_unidades,
+                "area_construida": area_construida,
                 "num_pavimentos": int(num_pav),
             }
-            st.rerun()  # Usar st.rerun em vez de st.experimental_rerun
+            st.rerun()
 
     # === TELA DE ORÇAMENTO ===
     else:
         info = st.session_state.projeto_info
-        st.title("📐 Orçamento Paramétrico de Edifícios Residenciais")
-        st.header("🔍 Informações do Projeto")
-        st.write(f"**Nome:** {info['nome']}")
-        st.write(f"**Área do Terreno:** {info['area_terreno']:,.2f} m²")
-        st.write(f"**Endereço:** {info['endereco']}")
-        st.write(f"**Pavimentos:** {info['num_pavimentos']}")
+        st.title("🏢 Orçamento Paramétrico de Edifícios Residenciais")
 
-        # Sidebar: custo
+        # Mostrar informações do projeto em caixas de destaque
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.info(f"Nome: {info['nome']}")
+            st.info(f"Endereço: {info['endereco']}")
+        with col2:
+            st.info(f"Área do Terreno: {info['area_terreno']:,.2f} m²")
+            st.info(f"Área Privativa: {info['area_privativa']:,.2f} m²")
+        with col3:
+            st.info(f"Nº Unidades: {info['num_unidades']}")
+            st.info(f"Nº Pavimentos: {info['num_pavimentos']}")
+
+        # Sidebar para custo
         st.sidebar.header("⚙️ Parâmetros de Cálculo")
         unit_cost = st.sidebar.number_input(
             "Custo de Área Privativa (R$/m²)",
@@ -117,7 +140,7 @@ def main():
 
             # 6) Área Total
             area_total_i = area_i * rep_i
-            c6.markdown(f"**{area_total_i:,.2f}**")
+            c6.markdown(f"<p style='text-align: right;'>{area_total_i:,.2f}</p>", unsafe_allow_html=True)
 
             nomes.append(nome_i)
             tipos.append(tipo_i)
@@ -128,33 +151,42 @@ def main():
 
         # Somatório de área total
         soma_area_total = sum(areas_total)
-        st.markdown(f"**Somatório de Área Total:** {soma_area_total:,.2f} m²")
+        st.markdown(
+            f"<h4 style='text-align: right;'>Somatório de Área Total: {soma_area_total:,.2f} m²</h4>",
+            unsafe_allow_html=True,
+        )
 
         # Monta DataFrame final
-        df = pd.DataFrame({
-            "Nome do Pavimento": nomes,
-            "Tipo de Pavimento": tipos,
-            "Repetição": reps,
-            "Coeficiente": coefs,
-            "Área (m²)": areas,
-            "Área Total (m²)": areas_total
-        })
+        df = pd.DataFrame(
+            {
+                "Nome do Pavimento": nomes,
+                "Tipo de Pavimento": tipos,
+                "Repetição": reps,
+                "Coeficiente": coefs,
+                "Área (m²)": areas,
+                "Área Total (m²)": areas_total,
+            }
+        )
         df["Área Equivalente (m²)"] = (
             df["Área (m²)"] * df["Coeficiente"] * df["Repetição"]
         )
         df["Custo do Pavimento (R$)"] = df["Área Equivalente (m²)"] * unit_cost
 
         # Cálculos agregados
-        total_eq = df["Área Equivalente (m²)"].sum()
-        total_custo = df["Custo do Pavimento (R$)"].sum()
+        total_eq = df["Área Equivalente (m²)"] .sum()
+        total_custo = df["Custo do Pavimento (R$)"] .sum()
 
         # Resultados
-        st.markdown("## 📊 Resultados")
-        st.write(f"- **Área equivalente total:** {total_eq:,.2f} m²")
-        st.write(f"- **Orçamento estimado:** R$ {total_custo:,.2f}")
+        st.markdown("## 💰 Resumo do Orçamento", unsafe_allow_html=True)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.success(f"Área Equivalente Total: {total_eq:,.2f} m²")
+        with col2:
+            st.success(f"Custo Total do Projeto: R$ {total_custo:,.2f}")
 
         # Detalhamento
-        st.markdown("### 📋 Detalhamento por Pavimento")
+        st.markdown("### 📑 Detalhamento por Pavimento")
         st.dataframe(df, use_container_width=True)
 
         # Download CSV
