@@ -34,10 +34,9 @@ DEFAULT_CUSTOS_INDIRETOS = {
 # --- FUNÇÕES AUXILIARES ---
 def init_storage():
     if not os.path.exists(JSON_PATH):
-        with open(JSON_PATH, "w", encoding="utf-8") as f:
-            json.dump([], f, ensure_ascii=False, indent=4)
+        with open(JSON_PATH, "w", encoding="utf-8") as f: json.dump([], f, ensure_ascii=False, indent=4)
 def load_all_projects():
-    init_storage()
+    init_storage(); 
     with open(JSON_PATH, "r", encoding="utf-8") as f: return json.load(f)
 def save_all_projects(projs):
     with open(JSON_PATH, "w", encoding="utf-8") as f: json.dump(projs, f, ensure_ascii=False, indent=4)
@@ -49,23 +48,24 @@ def save_project(info):
         projs = [p if p["id"] != info["id"] else info for p in projs]
     else:
         pid = (max(p["id"] for p in projs) + 1) if projs else 1
-        info["id"] = pid
-        info["created_at"] = datetime.utcnow().isoformat()
-        projs.append(info)
+        info["id"] = pid; info["created_at"] = datetime.utcnow().isoformat(); projs.append(info)
     save_all_projects(projs)
 def load_project(pid):
     return next((p for p in load_all_projects() if p["id"] == pid), None)
 def delete_project(pid):
-    projs = [p for p in load_all_projects() if p["id"] != pid]
-    save_all_projects(projs)
+    projs = [p for p in load_all_projects() if p["id"] != pid]; save_all_projects(projs)
 def fmt_br(valor):
     s = f"{valor:,.2f}"; return s.replace(",", "X").replace(".", ",").replace("X", ".")
 def render_metric_card(title, value, color="#31708f"):
     return f"""<div style="background-color:{color}; border-radius:6px; padding:15px; text-align:center; height:100%;"><div style="color:#fff; font-size:16px; margin-bottom:4px;">{title}</div><div style="color:#fff; font-size:28px; font-weight:bold;">{value}</div></div>"""
+
+# <<< 3. FUNÇÃO DE REDISTRIBUIÇÃO ATUALIZADA COM FEEDBACK
 def handle_percentage_redistribution(etapas_key='etapas_percentuais'):
     if 'previous_etapas' not in st.session_state: st.session_state.previous_etapas = st.session_state[etapas_key].copy()
     current, previous = st.session_state[etapas_key], st.session_state.previous_etapas
     if current == previous: return
+    
+    st.session_state.redistribution_occured = True # Seta a flag para mostrar a mensagem
     changed_etapa = next((e for e, p in current.items() if p != previous.get(e)), None)
     if changed_etapa:
         delta = current[changed_etapa] - previous[changed_etapa]
@@ -84,12 +84,9 @@ def handle_percentage_redistribution(etapas_key='etapas_percentuais'):
 def page_budget_tool():
     st.title("🏗️ Orçamento Paramétrico de Edifícios")
     info = st.session_state.projeto_info
-    
-    # Inicializa o estado da sessão para os pavimentos se não existir
     if 'pavimentos' not in st.session_state:
         st.session_state.pavimentos = [p.copy() for p in info.get('pavimentos', [DEFAULT_PAVIMENTO.copy()])]
     
-    # CARDS SUPERIORES
     c1, c2, c3, c4 = st.columns(4)
     cores = ["#31708f", "#3c763d", "#8a6d3b", "#a94442"]
     c1.markdown(render_metric_card("Nome", info["nome"], cores[0]), unsafe_allow_html=True)
@@ -104,7 +101,6 @@ def page_budget_tool():
     if b2.button("➖ Remover Último"): 
         if st.session_state.pavimentos: st.session_state.pavimentos.pop(); st.rerun()
 
-    # INPUTS DOS PAVIMENTOS
     col_widths = [3, 3, 1, 1.2, 1.5, 1.5, 1.5, 1.5]
     headers = ["Nome", "Tipo", "Rep.", "Coef.", "Área (m²)", "Área Eq. Total", "Área Constr.", "Considerar A.C?"]
     header_cols = st.columns(col_widths)
@@ -124,10 +120,9 @@ def page_budget_tool():
         cols[5].markdown(f"<div style='text-align:center; padding-top: 8px;'>{fmt_br(area_eq_i)}</div>", unsafe_allow_html=True)
         cols[6].markdown(f"<div style='text-align:center; padding-top: 8px;'>{fmt_br(total_i)}</div>", unsafe_allow_html=True)
 
-    info['pavimentos'] = st.session_state.pavimentos # Atualiza info com os dados da tela
-
-    # CÁLCULOS E RESULTADOS
+    info['pavimentos'] = st.session_state.pavimentos
     df = pd.DataFrame(info['pavimentos'])
+    
     if not df.empty:
         custos_config = info.get('custos_config', {})
         df["area_total"] = df["area"] * df["rep"]
@@ -157,37 +152,66 @@ def page_budget_tool():
 
         st.markdown("---")
         st.markdown("### 📑 Detalhamento do Empreendimento")
+        
+        # <<< 1. LÓGICA DE SOMATÓRIO E FORMATAÇÃO DA TABELA
         df_display = df.rename(columns={"nome": "Nome", "tipo": "Tipo", "rep": "Rep.", "coef": "Coef.", "area": "Área (m²)", "area_eq": "Área Eq. Total (m²)", "area_constr": "Área Constr. (m²)", "custo_direto": "Custo Direto (R$)"})
         colunas_a_exibir = ["Nome", "Tipo", "Rep.", "Coef.", "Área (m²)", "Área Eq. Total (m²)", "Área Constr. (m²)", "Custo Direto (R$)"]
-        st.dataframe(df_display[colunas_a_exibir], use_container_width=True)
+        
+        # Cria uma cópia para formatação
+        df_formatted = df_display[colunas_a_exibir].copy()
 
+        # Calcula totais a partir do dataframe original (numérico)
+        soma_eq = df['area_eq'].sum()
+        soma_constr = df['area_constr'].sum()
+        soma_custo = df['custo_direto'].sum()
+        
+        # Aplica formatação de string
+        for col in ["Área Eq. Total (m²)", "Área Constr. (m²)"]:
+            df_formatted[col] = df_formatted[col].apply(fmt_br)
+        df_formatted["Custo Direto (R$)"] = df_formatted["Custo Direto (R$)"].apply(lambda v: f"R$ {fmt_br(v)}")
+
+        # Cria linha de total já formatada
+        total_row = pd.DataFrame([{
+            "Nome": "<strong>TOTAL</strong>", "Tipo": "", "Rep.": "", "Coef.": "", "Área (m²)": "",
+            "Área Eq. Total (m²)": f"<strong>{fmt_br(soma_eq)}</strong>",
+            "Área Constr. (m²)": f"<strong>{fmt_br(soma_constr)}</strong>",
+            "Custo Direto (R$)": f"<strong>R$ {fmt_br(soma_custo)}</strong>"
+        }])
+        
+        # Concatena e exibe como HTML para permitir negrito
+        df_final_display = pd.concat([df_formatted, total_row], ignore_index=True)
+        st.markdown(df_final_display.to_html(escape=False, index=False, justify="center"), unsafe_allow_html=True)
+        
         st.markdown("---")
         with st.expander("💸 Custo Direto por Etapa da Obra", expanded=True):
             if 'etapas_percentuais' not in st.session_state: st.session_state.etapas_percentuais = info.get('etapas_percentuais', ETAPAS_OBRA).copy()
             if 'previous_etapas' not in st.session_state: st.session_state.previous_etapas = st.session_state.etapas_percentuais.copy()
-            col1, col2, col3 = st.columns([2, 2, 1.5]); col1.markdown("**Etapa**"); col2.markdown("**Percentual (%)**"); col3.markdown("**Custo da Etapa (R$)**")
-            etapas_data = []
+            
+            # <<< 2. TABELA ÚNICA DE CUSTOS POR ETAPA
+            col1, col2, col3 = st.columns([2.5, 2, 1.5]); col1.markdown("**Etapa**"); col2.markdown("**Percentual (%)**"); col3.markdown("**Custo da Etapa (R$)**")
+            
             for etapa, percent_padrao in st.session_state.etapas_percentuais.items():
-                col1, col2, col3 = st.columns([2, 2, 1.5])
+                col1, col2, col3 = st.columns([2.5, 2, 1.5])
                 col1.container(height=38, border=False).write(etapa)
                 percent_atual = col2.slider(etapa, 0.0, 100.0, float(percent_padrao), 0.5, key=f"etapa_{etapa.replace(' ', '_')}", label_visibility="collapsed")
                 st.session_state.etapas_percentuais[etapa] = percent_atual
                 custo_etapa = custo_direto_total * (percent_atual / 100)
                 col3.container(height=38, border=False).write(f"R$ {fmt_br(custo_etapa)}")
-                etapas_data.append({"Etapa": etapa, "Percentual (%)": f"{percent_atual:.1f}%", "Custo da Etapa (R$)": custo_etapa})
             
             handle_percentage_redistribution()
-            if custo_contencao > 0:
-                etapas_data.append({"Etapa": "Contenções de Subsolo", "Percentual (%)": "-", "Custo da Etapa (R$)": custo_contencao})
-            df_etapas = pd.DataFrame(etapas_data)
-            custo_total_etapas = df_etapas["Custo da Etapa (R$)"].sum()
-            df_etapas["Custo da Etapa (R$)"] = df_etapas["Custo da Etapa (R$)"].apply(lambda v: f"R$ {fmt_br(v)}")
-            total_row = pd.DataFrame([{"Etapa": "<strong>TOTAL</strong>", "Percentual (%)": "<strong>-</strong>", "Custo da Etapa (R$)": f"<strong>R$ {fmt_br(custo_total_etapas)}</strong>"}])
-            df_final_etapas = pd.concat([df_etapas, total_row], ignore_index=True)
-            st.markdown(df_final_etapas.to_html(escape=False, index=False, justify="right", header=False), unsafe_allow_html=True)
+
+            st.divider()
+            
+            # Somatório no final
+            custo_total_etapas = custo_direto_total + custo_contencao
+            soma_cols = st.columns([2.5, 2, 1.5])
+            soma_cols[0].markdown("<strong>TOTAL</strong>", unsafe_allow_html=True)
+            soma_cols[2].markdown(f"<strong>R$ {fmt_br(custo_total_etapas)}</strong>", unsafe_allow_html=True)
+            
 
 # --- PÁGINA 2: ANÁLISE DE VIABILIDADE ---
 def page_viability_analysis():
+    # ... (O código desta página permanece o mesmo da versão anterior)
     st.title("📊 Análise de Viabilidade do Empreendimento")
     info = st.session_state.projeto_info
     
@@ -213,11 +237,9 @@ def page_viability_analysis():
         if 'unidades_vgv' not in info: info['unidades_vgv'] = []
         edited_unidades = st.data_editor(
             pd.DataFrame(info['unidades_vgv']), num_rows="dynamic", use_container_width=True, key="editor_unidades",
-            column_config={
-                "Tipo": st.column_config.TextColumn(required=True), "Quant.": st.column_config.NumberColumn(required=True, min_value=1, step=1),
+            column_config={ "Tipo": st.column_config.TextColumn(required=True), "Quant.": st.column_config.NumberColumn(required=True, min_value=1, step=1),
                 "Área Privativa (m²)": st.column_config.NumberColumn(required=True, format="%.2f m²"),
-                "Valor Médio de Venda (R$)": st.column_config.NumberColumn(required=True, format="R$ %.2f"),
-            })
+                "Valor Médio de Venda (R$)": st.column_config.NumberColumn(required=True, format="R$ %.2f"),})
         info['unidades_vgv'] = edited_unidades.to_dict('records')
         unidades_df = pd.DataFrame(info['unidades_vgv'])
         vgv_total = (unidades_df['Quant.'] * unidades_df['Valor Médio de Venda (R$)']).sum() if not unidades_df.empty else 0
@@ -275,7 +297,6 @@ def main():
     init_storage()
 
     if "projeto_info" not in st.session_state:
-        # TELA DE SELEÇÃO DE PROJETO
         st.header("🏢 Orçamento Paramétrico – Gestão de Projetos")
         st.markdown("Selecione um projeto existente para analisar ou crie um novo para começar.")
         projetos = list_projects()
@@ -315,6 +336,11 @@ def main():
             for key in keys_to_delete:
                 if key in st.session_state: del st.session_state[key]
             st.rerun()
+        
+        # <<< 3. LÓGICA PARA EXIBIR MENSAGEM DE FEEDBACK DA REDISTRIBUIÇÃO
+        if st.session_state.get("redistribution_occured", False):
+            st.toast("Percentuais reajustados para manter a soma em 100%!", icon="👍")
+            del st.session_state.redistribution_occured
 
         if page == "Orçamento Direto":
             page_budget_tool()
