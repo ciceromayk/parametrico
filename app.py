@@ -1,39 +1,3 @@
-Entendido. Ótima sugestão para dar ainda mais granularidade ao detalhamento dos custos. Desmembrar os revestimentos é uma prática comum em orçamentos mais detalhados e reflete melhor a realidade da obra.
-
-Para incorporar sua solicitação, eu vou:
-
-1.  Remover a categoria genérica "Revestimentos (Pisos, Paredes, Forros)".
-2.  Adicionar as quatro novas categorias que você mencionou.
-3.  **Rebalancear os percentuais padrão** para incluir o "Revestimento de Fachada" e redistribuir o valor dos revestimentos internos, mantendo a soma total em 100%. Para isso, precisei reduzir um pouco os pesos de "Estrutura" and "Vedações", que são as categorias que mais "conversam" com os revestimentos.
-
-### Nova Estrutura de Etapas da Obra
-
-A nova distribuição de percentuais padrão que vamos utilizar é a seguinte:
-
-  * Serviços Preliminares e Fundações: 8%
-  * Estrutura (Supraestrutura): **16%** *(ajustado)*
-  * Vedações (Alvenaria): **10%** *(ajustado)*
-  * Cobertura e Impermeabilização: 5%
-  * **Revestimentos de Fachada: 6%** *(novo)*
-  * Instalações (Elétrica e Hidráulica): 15%
-  * Esquadrias (Portas e Janelas): 8%
-  * **Revestimentos de Piso: 10%** *(desmembrado)*
-  * **Revestimentos de Parede: 8%** *(desmembrado)*
-  * **Revestimentos de Forro: 4%** *(desmembrado)*
-  * Pintura: 5%
-  * Serviços Complementares e Externos: 5%
-
-**Total: 100%**
-
-A grande vantagem da forma como construímos o código é que esta é uma alteração muito simples. Só precisamos atualizar o nosso dicionário de `ETAPAS_OBRA` e a interface com os sliders se adaptará automaticamente.
-
------
-
-### Código Atualizado
-
-Aqui está o código completo com a nova estrutura de etapas implementada. A única alteração está na definição do dicionário `ETAPAS_OBRA`.
-
-```python
 import streamlit as st
 import pandas as pd
 import json
