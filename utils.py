@@ -4,6 +4,7 @@ import pandas as pd
 import json
 import os
 from datetime import datetime
+from fpdf import FPDF # Importa a nova biblioteca
 
 # --- CONSTANTES GLOBAIS ---
 JSON_PATH = "projects.json"
@@ -49,25 +50,19 @@ DEFAULT_CUSTOS_INDIRETOS = {
     "Preparação do Terreno":           (0.2, 0.33, 1.0),
     "Financiamento Bancário":            (1.0, 1.9, 3.0),
 }
-DEFAULT_CUSTOS_INDIRETOS_FIXOS = {
-    "Juros Financiamento Estimado Durante Obra": 0.0
-}
+DEFAULT_CUSTOS_INDIRETOS_FIXOS = {}
 
 # --- FUNÇÕES DE GESTÃO DE DADOS ---
 def init_storage(path):
     if not os.path.exists(path):
         with open(path, "w", encoding="utf-8") as f: json.dump([], f, ensure_ascii=False, indent=4)
-
 def load_json(path):
     init_storage(path); 
     with open(path, "r", encoding="utf-8") as f: return json.load(f)
-
 def save_json(data, path):
     with open(path, "w", encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=4)
-
 def list_projects():
     return [{"id": p["id"], "nome": p["nome"]} for p in load_json(JSON_PATH)]
-
 def save_project(info):
     projs = load_json(JSON_PATH)
     if info.get("id"):
@@ -76,7 +71,6 @@ def save_project(info):
         pid = (max(p["id"] for p in projs) + 1) if projs else 1
         info["id"] = pid; info["created_at"] = datetime.utcnow().isoformat(); projs.append(info)
     save_json(projs, JSON_PATH)
-
 def load_project(pid):
     project_data = next((p for p in load_json(JSON_PATH) if p["id"] == pid), None)
     if project_data and 'etapas_percentuais' in project_data:
@@ -84,7 +78,6 @@ def load_project(pid):
         if etapas and isinstance(list(etapas.values())[0], (int, float)):
             project_data['etapas_percentuais'] = {k: {"percentual": v, "fonte": "Manual"} for k, v in etapas.items()}
     return project_data
-
 def delete_project(pid):
     projs = [p for p in load_json(JSON_PATH) if p["id"] != pid]; save_json(projs, JSON_PATH)
 
@@ -156,7 +149,6 @@ def render_sidebar():
 
     st.sidebar.divider()
     if st.sidebar.button("💾 Salvar Todas as Alterações", use_container_width=True, type="primary"):
-        # Garante que os dados da sessão são salvos no objeto principal
         if 'etapas_percentuais' in st.session_state: info['etapas_percentuais'] = st.session_state.etapas_percentuais
         if 'custos_indiretos_percentuais' in st.session_state: info['custos_indiretos_percentuais'] = st.session_state.custos_indiretos_percentuais
         save_project(st.session_state.projeto_info); st.sidebar.success("Projeto salvo com sucesso!")
@@ -174,3 +166,93 @@ def render_sidebar():
         for key in keys_to_delete:
             if key in st.session_state: del st.session_state[key]
         st.switch_page("app.py")
+
+# --- NOVA FUNÇÃO PARA GERAR O RELATÓRIO PDF ---
+class PDF(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 16)
+        self.cell(0, 10, 'Relatório de Viabilidade de Empreendimento', 0, 1, 'C')
+        self.ln(5)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial', 'I', 8)
+        self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
+
+def generate_pdf_report(info, vgv_total, custo_total_despesas, lucratividade_valor, lucratividade_percentual,
+                        custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total):
+    
+    pdf = PDF()
+    pdf.add_page()
+    pdf.set_font('Arial', '', 12)
+
+    # Função auxiliar para criar os cards no PDF
+    def create_pdf_card(title, value, x, y, w, h, color):
+        r, g, b = tuple(int(color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        pdf.set_xy(x, y)
+        pdf.set_fill_color(r, g, b)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(w, h, '', 0, 1, 'C', 1)
+        
+        pdf.set_xy(x, y + 2)
+        pdf.set_font('Arial', 'B', 9)
+        pdf.cell(w, 8, title, 0, 1, 'C')
+        
+        pdf.set_xy(x, y + 10)
+        pdf.set_font('Arial', 'B', 14)
+        pdf.cell(w, 8, value, 0, 1, 'C')
+        pdf.set_text_color(0, 0, 0) # Reseta a cor do texto
+
+    # --- Seção do Título ---
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, f"Projeto: {info['nome']}", 0, 1, 'L')
+    pdf.ln(5)
+
+    # --- Seção de Resultados Financeiros ---
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, "Resultados Financeiros", 0, 1, 'L')
+    cores = ["#00829d", "#6a42c1", "#3c763d", "#a94442"]
+    cards_data = [
+        ("VGV Total", f"R$ {fmt_br(vgv_total)}", cores[0]),
+        ("Custo Total", f"R$ {fmt_br(custo_total_despesas)}", cores[1]),
+        ("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}", cores[2]),
+        ("Margem de Lucro", f"{lucratividade_percentual:.2f}%", cores[3])
+    ]
+    card_w, card_h = 45, 20
+    for i, (title, value, color) in enumerate(cards_data):
+        create_pdf_card(title, value, 10 + i * card_w, pdf.get_y(), card_w, card_h, color)
+    pdf.ln(card_h + 10)
+
+    # --- Seção de Composição de Custos ---
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, "Composição do Custo Total", 0, 1, 'L')
+    if valor_total_despesas > 0:
+        p_direto = (custo_direto_total / valor_total_despesas * 100)
+        p_indireto = (custo_indireto_calculado / valor_total_despesas * 100)
+        p_terreno = (custo_terreno_total / valor_total_despesas * 100)
+        comp_cards_data = [
+            (f"Custo Direto ({p_direto:.2f}%)", f"R$ {fmt_br(custo_direto_total)}", "#31708f"),
+            (f"Custo Indireto ({p_indireto:.2f}%)", f"R$ {fmt_br(custo_indireto_calculado)}", "#8a6d3b"),
+            (f"Custo do Terreno ({p_terreno:.2f}%)", f"R$ {fmt_br(custo_terreno_total)}", "#6f42c1")
+        ]
+        card_w, card_h = 60, 20
+        for i, (title, value, color) in enumerate(comp_cards_data):
+            create_pdf_card(title, value, 10 + i * card_w, pdf.get_y(), card_w, card_h, color)
+        pdf.ln(card_h + 10)
+
+    # --- Seção de Indicadores por Área ---
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, "Indicadores por Área Construída", 0, 1, 'L')
+    cores = ["#fd7e14", "#20c997", "#31708f", "#8a6d3b" ]
+    ind_cards_data = [
+        ("Terreno / Custo Total", f"{(custo_terreno_total / valor_total_despesas * 100 if valor_total_despesas > 0 else 0):.2f}%", cores[0]),
+        ("Custo Direto / m²", f"R$ {fmt_br(custo_direto_total / area_construida_total if area_construida_total > 0 else 0)}", cores[1]),
+        ("Custo Indireto / m²", f"R$ {fmt_br(custo_indireto_calculado / area_construida_total if area_construida_total > 0 else 0)}", cores[2]),
+        ("Custo Total / m²", f"R$ {fmt_br(valor_total_despesas / area_construida_total if area_construida_total > 0 else 0)}", cores[3])
+    ]
+    card_w, card_h = 45, 20
+    for i, (title, value, color) in enumerate(ind_cards_data):
+        create_pdf_card(title, value, 10 + i * card_w, pdf.get_y(), card_w, card_h, color)
+    pdf.ln(card_h + 10)
+    
+    return pdf.output(dest='S').encode('latin-1')
