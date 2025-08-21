@@ -43,11 +43,6 @@ def main():
                 "Área Total Privativa (m²)", min_value=0.0, format="%.2f"
             )
             num_unidades = st.number_input("Número de Unidades", min_value=1, step=1)
-            area_construida = st.checkbox("Considerar Área Construída", value=True)
-
-        num_pav = st.number_input(
-            "Número de Pavimentos", min_value=1, max_value=50, value=1, step=1
-        )
 
         if st.button("✅ Salvar Projeto"):
             st.session_state.projeto_info = {
@@ -56,8 +51,6 @@ def main():
                 "endereco": endereco,
                 "area_privativa": area_privativa,
                 "num_unidades": num_unidades,
-                "area_construida": area_construida,
-                "num_pavimentos": int(num_pav),
             }
             st.rerun()
 
@@ -76,7 +69,6 @@ def main():
             st.info(f"Área Privativa: {info['area_privativa']:,.2f} m²")
         with col3:
             st.info(f"Nº Unidades: {info['num_unidades']}")
-            st.info(f"Nº Pavimentos: {info['num_pavimentos']}")
 
         # Sidebar para custo
         st.sidebar.header("⚙️ Parâmetros de Cálculo")
@@ -91,12 +83,14 @@ def main():
         st.sidebar.markdown("© 2025 Sua Empresa")
 
         # Dados dos Pavimentos
-        n = info["num_pavimentos"]
+        n = st.number_input(
+            "Número de Pavimentos", min_value=1, max_value=50, value=1, step=1
+        )
         st.markdown("### 🏢 Dados dos Pavimentos")
 
         # Cabeçalho da tabela
-        col_nome, col_tipo, col_rep, col_coef, col_area, col_at = st.columns(
-            [1.5, 3, 0.6, 1, 1, 1]
+        col_nome, col_tipo, col_rep, col_coef, col_area, col_at, col_const = st.columns(
+            [1.3, 2.5, 0.5, 1, 1, 1, 0.7]
         )
         col_nome.markdown("**Nome**")
         col_tipo.markdown("**Tipo de Pavimento**")
@@ -104,11 +98,14 @@ def main():
         col_coef.markdown("**Coef.**")
         col_area.markdown("**Área (m²)**")
         col_at.markdown("**Área Total**")
+        col_const.markdown("**Constr.**")
 
-        nomes, tipos, reps, coefs, areas, areas_total = [], [], [], [], [], []
+        nomes, tipos, reps, coefs, areas, areas_total, constr = [], [], [], [], [], [], []
 
         for i in range(1, n + 1):
-            c1, c2, c3, c4, c5, c6 = st.columns([1.5, 3, 0.6, 1, 1, 1])
+            c1, c2, c3, c4, c5, c6, c7 = st.columns(
+                [1.3, 2.5, 0.5, 1, 1, 1, 0.7]
+            )
 
             # 1) Nome do Pavimento
             nome_i = c1.text_input("", value=f"Pavimento {i}", key=f"nome_{i}")
@@ -142,19 +139,16 @@ def main():
             area_total_i = area_i * rep_i
             c6.markdown(f"<p style='text-align: right;'>{area_total_i:,.2f}</p>", unsafe_allow_html=True)
 
+            # 7) Considerar Área Construída
+            constr_i = c7.checkbox("", value=True, key=f"constr_{i}")
+
             nomes.append(nome_i)
             tipos.append(tipo_i)
             reps.append(rep_i)
             coefs.append(coef_i)
             areas.append(area_i)
             areas_total.append(area_total_i)
-
-        # Somatório de área total
-        soma_area_total = sum(areas_total)
-        st.markdown(
-            f"<h4 style='text-align: right;'>Somatório de Área Total: {soma_area_total:,.2f} m²</h4>",
-            unsafe_allow_html=True,
-        )
+            constr.append(constr_i)
 
         # Monta DataFrame final
         df = pd.DataFrame(
@@ -165,6 +159,7 @@ def main():
                 "Coeficiente": coefs,
                 "Área (m²)": areas,
                 "Área Total (m²)": areas_total,
+                "Área Construída": constr,
             }
         )
         df["Área Equivalente (m²)"] = (
@@ -172,8 +167,16 @@ def main():
         )
         df["Custo do Pavimento (R$)"] = df["Área Equivalente (m²)"] * unit_cost
 
+        # Somatório da área total construída (apenas se "Área Construída" for True)
+        df_construida = df[df["Área Construída"] == True]
+        soma_area_total = df_construida["Área Total (m²)"].sum()
+        st.markdown(
+            f"<h4 style='text-align: right;'>Somatório de Área Total Construída: {soma_area_total:,.2f} m²</h4>",
+            unsafe_allow_html=True,
+        )
+
         # Cálculos agregados
-        total_eq = df["Área Equivalente (m²)"] .sum()
+        total_eq = df["Área Equivalente (m²)"].sum()
         total_custo = df["Custo do Pavimento (R$)"] .sum()
 
         # Resultados
