@@ -70,7 +70,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         })
     df = pd.DataFrame(dados_tabela)
 
-    # PASSO 2: Exibir e Configurar o Data Editor
+# PASSO 2: Exibir e Configurar o Data Editor (versão corrigida)
     st.write("### Edite os percentuais de cada custo abaixo:")
     edited_df = st.data_editor(
         df,
@@ -81,8 +81,9 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
             ),
             "Seu Projeto (%)": st.column_config.NumberColumn(
                 help="Clique para editar o valor percentual do custo.",
-                min_value=df["_min"],
-                max_value=df["_max"],
+                # CORREÇÃO: Convertemos as colunas para listas
+                min_value=df["_min"].tolist(),
+                max_value=df["_max"].tolist(),
                 step=0.1,
                 format="%.1f %%",
             ),
