@@ -62,31 +62,30 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         })
     df = pd.DataFrame(dados_tabela)
 
-    # PASSO 2: Exibir e Configurar o Data Editor (COM A NOVA COLUNA CONFIGURADA)
-    st.write("### Edite os percentuais de cada custo abaixo:")
-    edited_df = st.data_editor(
-        df,
-        column_config={
-            "Item": st.column_config.TextColumn(width="large", disabled=True),
-            "Seu Projeto (%)": st.column_config.NumberColumn(
-                help="Clique para editar o valor percentual do custo.",
-                min_value=df["_min"].tolist(),
-                max_value=df["_max"].tolist(),
-                step=0.1,
-                format="%.1f %%"
-            ),
-            # Adicionamos a configuração da coluna de Custo
-            "Custo (R$)": st.column_config.NumberColumn(
-                label="Custo (R$)",
-                # Usamos a sua função fmt_br para formatar o número
-                format="R$ %s" % fmt_br(0).replace("0,00", ",.2f"),
-                disabled=True,
-            )
-        },
-        hide_index=True,
-        use_container_width=True,
-        column_order=("Item", "Seu Projeto (%)", "Custo (R$)") # Garantimos a ordem
-    )
+    # PASSO 2: Exibir e Configurar o Data Editor (COM A FORMATAÇÃO CORRIGIDA)
+st.write("### Edite os percentuais de cada custo abaixo:")
+edited_df = st.data_editor(
+    df,
+    column_config={
+        "Item": st.column_config.TextColumn(width="large", disabled=True),
+        "Seu Projeto (%)": st.column_config.NumberColumn(
+            help="Clique para editar o valor percentual do custo.",
+            min_value=df["_min"].tolist(),
+            max_value=df["_max"].tolist(),
+            step=0.1,
+            format="%.1f %%"
+        ),
+        # CORREÇÃO: Usando a string de formatação correta
+        "Custo (R$)": st.column_config.NumberColumn(
+            label="Custo (R$)",
+            format="R$ %.2f",
+            disabled=True,
+        )
+    },
+    hide_index=True,
+    use_container_width=True,
+    column_order=("Item", "Seu Projeto (%)", "Custo (R$)")
+)
     
     # PASSO 3: Usar os Dados Editados para Recalcular e Salvar
     # Esta parte continua igual e garante a reatividade
