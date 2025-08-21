@@ -93,7 +93,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
             df,
             gridOptions=gridOptions,
             height=450,
-            width='20%',
+            width=1000,
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
             try_convert_numeric_dtypes=True,
