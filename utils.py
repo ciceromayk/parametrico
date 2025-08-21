@@ -144,4 +144,81 @@ def render_sidebar():
         if st.button("Arquivar Custos Diretos", use_container_width=True):
             info['etapas_percentuais'] = st.session_state.etapas_percentuais; save_to_historico(info, 'direto')
         if st.button("Arquivar Custos Indiretos", use_container_width=True):
-            info['custos_indiretos_percentuais'] = st.session_state.custos_indiretos_percentuais;
+            info['custos_indiretos_percentuais'] = st.session_state.custos_indiretos_percentuais; save_to_historico(info, 'indireto')
+    if st.sidebar.button("Mudar de Projeto", use_container_width=True):
+        keys_to_delete = ["projeto_info", "pavimentos", "etapas_percentuais", "previous_etapas_percentuais", "custos_indiretos_percentuais", "previous_custos_indiretos_percentuais"]
+        for key in keys_to_delete:
+            if key in st.session_state: del st.session_state[key]
+        st.switch_page("app.py")
+
+class PDF(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 16)
+        self.cell(0, 10, 'Relatório de Viabilidade de Empreendimento', 0, 1, 'C')
+        self.ln(5)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial', 'I', 8)
+        self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
+
+def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
+                        custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total):
+    pdf = PDF()
+    pdf.add_page()
+    pdf.set_font('Arial', '', 12)
+    
+    def create_pdf_card(title, value, x, y, w, h, color):
+        r, g, b = tuple(int(color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        pdf.set_xy(x, y)
+        pdf.set_fill_color(r, g, b)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(w, h, '', 0, 1, 'C', 1)
+        pdf.set_xy(x, y + 2)
+        pdf.set_font('Arial', 'B', 9)
+        pdf.multi_cell(w, 4, title, 0, 'C')
+        pdf.set_xy(x, y + 10)
+        pdf.set_font('Arial', 'B', 14)
+        pdf.cell(w, 8, value, 0, 1, 'C')
+        pdf.set_text_color(0, 0, 0)
+    
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, f"Projeto: {info['nome']}", 0, 1, 'L')
+    pdf.ln(5)
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, "Resultados Financeiros", 0, 1, 'L')
+    cores = ["#00829d", "#6a42c1", "#3c763d", "#a94442"]
+    cards_data = [("VGV Total", f"R$ {fmt_br(vgv_total)}", cores[0]),("Custo Total", f"R$ {fmt_br(valor_total_despesas)}", cores[1]),
+                  ("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}", cores[2]),("Margem de Lucro", f"{lucratividade_percentual:.2f}%", cores[3])]
+    card_w, card_h = 45, 20
+    for i, (title, value, color) in enumerate(cards_data):
+        create_pdf_card(title, value, 10 + i * card_w, pdf.get_y(), card_w, card_h, color)
+    pdf.ln(card_h + 10)
+
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, "Composição do Custo Total", 0, 1, 'L')
+    if valor_total_despesas > 0:
+        p_direto = (custo_direto_total / valor_total_despesas * 100)
+        p_indireto = (custo_indireto_calculado / valor_total_despesas * 100)
+        p_terreno = (custo_terreno_total / valor_total_despesas * 100)
+        comp_cards_data = [(f"Custo Direto ({p_direto:.2f}%)", f"R$ {fmt_br(custo_direto_total)}", "#31708f"),
+                           (f"Custo Indireto ({p_indireto:.2f}%)", f"R$ {fmt_br(custo_indireto_calculado)}", "#8a6d3b"),
+                           (f"Custo do Terreno ({p_terreno:.2f}%)", f"R$ {fmt_br(custo_terreno_total)}", "#6f42c1")]
+        card_w, card_h = 60, 20
+        for i, (title, value, color) in enumerate(comp_cards_data):
+            create_pdf_card(title, value, 10 + i * card_w, pdf.get_y(), card_w, card_h, color)
+        pdf.ln(card_h + 10)
+
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, "Indicadores por Área Construída", 0, 1, 'L')
+    cores = ["#fd7e14", "#20c997", "#31708f", "#8a6d3b" ]
+    ind_cards_data = [("Terreno / Custo Total", f"{(custo_terreno_total / valor_total_despesas * 100 if valor_total_despesas > 0 else 0):.2f}%", cores[0]),
+                      ("Custo Direto / m²", f"R$ {fmt_br(custo_direto_total / area_construida_total if area_construida_total > 0 else 0)}", cores[1]),
+                      ("Custo Indireto / m²", f"R$ {fmt_br(custo_indireto_calculado / area_construida_total if area_construida_total > 0 else 0)}", cores[2]),
+                      ("Custo Total / m²", f"R$ {fmt_br(valor_total_despesas / area_construida_total if area_construida_total > 0 else 0)}", cores[3])]
+    card_w, card_h = 45, 20
+    for i, (title, value, color) in enumerate(ind_cards_data):
+        create_pdf_card(title, value, 10 + i * card_w, pdf.get_y(), card_w, card_h, color)
+    pdf.ln(card_h + 10)
+    
+    return pdf.output()
