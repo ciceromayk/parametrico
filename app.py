@@ -1,15 +1,15 @@
 # app.py
 import streamlit as st
-from datetime import datetime  # <<< CORREÇÃO: Importação adicionada
+from datetime import datetime
 from utils import (
     init_storage, list_projects, save_project, load_project, delete_project,
-    DEFAULT_PAVIMENTO, ETAPAS_OBRA, DEFAULT_CUSTOS_INDIRETOS, DEFAULT_CUSTOS_INDIRETOS_FIXOS, fmt_br
+    DEFAULT_PAVIMENTO, ETAPAS_OBRA, DEFAULT_CUSTOS_INDIRETOS, DEFAULT_CUSTOS_INDIRETOS_FIXOS
 )
 
-st.set_page_config(page_title="ViEnge - Gestão de Projetos", layout="wide")
+st.set_page_config(page_title="Estudo de Viabilidade", layout="wide")
 init_storage("projects.json")
 
-# CSS PARA AUMENTAR O TEXTO DO MENU NA SIDEBAR
+# <<< 2. CSS PARA AUMENTAR O TEXTO DO MENU NA SIDEBAR
 st.markdown("""
 <style>
     div[data-testid="stSidebarNav"] li a {
@@ -21,7 +21,7 @@ st.markdown("""
 
 def page_project_selection():
     """Renderiza a tela de seleção e criação de projetos."""
-    st.title("ViEnge - Gestão de Projetos")
+    st.title("Estudo de Viabilidade")
     st.markdown("Selecione um projeto existente para analisar ou crie um novo para começar.")
     
     st.divider()
@@ -46,13 +46,12 @@ def page_project_selection():
             cols[0].write(proj['id'])
             cols[1].write(proj['nome'])
             
-            # Formata a data para o padrão brasileiro
             data_criacao = datetime.fromisoformat(proj.get('created_at', '1970-01-01T00:00:00')).strftime('%d/%m/%Y')
             cols[2].write(data_criacao)
             
             if cols[3].button("Carregar", key=f"load_{proj['id']}", use_container_width=True):
                 st.session_state.projeto_info = load_project(proj['id'])
-                st.switch_page("pages/1_Orcamento_Direto.py")
+                st.switch_page("pages/1_Custos_Diretos.py")
 
             if cols[4].button("🗑️", key=f"delete_{proj['id']}", use_container_width=True, help=f"Excluir projeto '{proj['nome']}'"):
                 delete_project(proj['id'])
@@ -83,10 +82,10 @@ def page_project_selection():
                 }
                 save_project(info)
                 st.session_state.projeto_info = info
-                st.switch_page("pages/1_Orcamento_Direto.py")
+                st.switch_page("pages/1_Custos_Diretos.py")
 
 # Roteamento inicial
 if "projeto_info" in st.session_state:
-    st.switch_page("pages/1_Orcamento_Direto.py")
+    st.switch_page("pages/1_Custos_Diretos.py")
 else:
     page_project_selection()
