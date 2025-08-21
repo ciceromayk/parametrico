@@ -1,7 +1,8 @@
 # pages/2_Custos_Indiretos.py
 import streamlit as st
 import pandas as pd
-from utils import * st.set_page_config(page_title="Custos Indiretos", layout="wide")
+from utils import * 
+st.set_page_config(page_title="Custos Indiretos", layout="wide")
 
 # (A função card_metric e a verificação de session_state continuam as mesmas)
 def card_metric(label, value):
