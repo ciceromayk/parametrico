@@ -1,6 +1,7 @@
 # pages/2_Custos_Indiretos.py
 import streamlit as st
 import pandas as pd
+import streamlit_antd_components as sac
 from utils import *
 
 st.set_page_config(page_title="Custos Indiretos", layout="wide")
@@ -111,7 +112,9 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
     
     _, col_metrica = st.columns([2, 1])
     with col_metrica:
-        card_metric(
-            label="Custo Indireto Total",
-            value=f"R$ {fmt_br(custo_indireto_calculado)}"
-        )
+        sac.card(
+            title='Custo Indireto Total',
+            description=f'R$ {fmt_br(custo_indireto_calculado)}',
+            size='lg',
+            icon='wallet2'
+    )
