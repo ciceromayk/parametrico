@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 from utils import *
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 
 st.set_page_config(page_title="Custos Indiretos", layout="wide")
 
@@ -40,7 +41,7 @@ custos_config = info.get('custos_config', {})
 preco_medio_venda_m2 = custos_config.get('preco_medio_venda_m2', 10000.0)
 vgv_total = info.get('area_privativa', 0) * preco_medio_venda_m2
 
-# Bloco principal com a nova tabela editável
+# Bloco principal com a nova tabela AgGrid
 with st.expander("Detalhamento de Custos Indiretos", expanded=True):
     st.subheader("Custos Indiretos (calculados sobre o VGV)")
 
@@ -52,47 +53,63 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         else:
             st.session_state.custos_indiretos_percentuais = {item: custos_salvos.get(item, {"percentual": vals[1], "fonte": "Manual"}) for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
 
-    # PASSO 1: Preparar os Dados para o Data Editor
+    # PASSO 1: Preparar os Dados para o AgGrid
     dados_tabela = []
     for item, (min_val, default_val, max_val) in DEFAULT_CUSTOS_INDIRETOS.items():
         percentual_atual = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val})['percentual']
         custo_calculado = vgv_total * (percentual_atual / 100)
-        
         dados_tabela.append({
             "Item": item,
             "Seu Projeto (%)": percentual_atual,
             "Custo (R$)": custo_calculado,
-            "_min": min_val,
-            "_max": max_val
         })
     df = pd.DataFrame(dados_tabela)
 
-    # PASSO 2: Exibir e Configurar o Data Editor
-    edited_df = st.data_editor(
+    # PASSO 2: Configurar o AgGrid
+    st.write("### Edite os percentuais de cada custo abaixo:")
+    
+    gb = GridOptionsBuilder.from_dataframe(df)
+    
+    # Código JavaScript para formatar a moeda no padrão brasileiro
+    jscode_formatador_moeda = JsCode("""
+        function(params) {
+            if (params.value === null || params.value === undefined) {
+                return '';
+            }
+            return 'R$ ' + params.value.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+    """)
+
+    gb.configure_column("Item", width=250)
+    gb.configure_column("Seu Projeto (%)", editable=True, width=100, type=["numericColumn", "numberColumnFilter", "customNumericFormat"], precision=1)
+    gb.configure_column("Custo (R$)", valueFormatter=jscode_formatador_moeda, width=150, type=["numericColumn", "numberColumnFilter"])
+    
+    gb.configure_default_column(resizable=True, filterable=True, sortable=True)
+    
+    gridOptions = gb.build()
+
+    # Exibimos a tabela AgGrid
+    grid_response = AgGrid(
         df,
-        column_config={
-            "Item": st.column_config.TextColumn(width="large", disabled=True),
-            "Seu Projeto (%)": st.column_config.NumberColumn(
-                help="Clique para editar o valor percentual do custo.",
-                min_value=df["_min"].tolist(),
-                max_value=df["_max"].tolist(),
-                step=0.1,
-                format="%.1f %%"
-            ),
-            "Custo (R$)": st.column_config.NumberColumn(
-                label="Custo (R$)",
-                format="R$ %.2f",
-                disabled=True,
-            )
-        },
-        hide_index=True,
-        use_container_width=True,
-        column_order=("Item", "Seu Projeto (%)", "Custo (R$)")
+        gridOptions=gridOptions,
+        height=500,
+        width='100%',
+        update_mode='MODEL_CHANGED',
+        allow_unsafe_jscode=True,
+        try_convert_numeric_dtypes=True,
+        # Tema visual para a tabela
+        theme='streamlit' 
     )
     
-    # PASSO 3: Usar os Dados Editados para Recalcular e Salvar
-    custo_indireto_calculado = vgv_total * (edited_df["Seu Projeto (%)"] / 100).sum()
+    # PASSO 3: Usar os Dados Editados
+    edited_df = grid_response['data']
+    
+    # Recalculamos o custo e o total com base nos dados que o usuário pode ter alterado
+    # Usamos pd.to_numeric para garantir que a coluna seja numérica antes de calcular
+    edited_df["Custo (R$)"] = vgv_total * (pd.to_numeric(edited_df["Seu Projeto (%)"], errors='coerce').fillna(0) / 100)
+    custo_indireto_calculado = edited_df["Custo (R$)"].sum()
 
+    # Atualizamos o session_state para guardar as alterações
     for index, row in edited_df.iterrows():
         item_nome = row["Item"]
         novo_percentual = row["Seu Projeto (%)"]
