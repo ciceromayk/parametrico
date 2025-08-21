@@ -3,7 +3,7 @@ import pandas as pd
 
 TIPOS_PAVIMENTO = [
     "Subsolo", "Térreo", "Sobressolo",
-    "Lazer", "Coberta", "Outro"
+    "Lazer", "Coberta", "Pavimento Tipo"  # Alterado "Outro" para "Pavimento Tipo"
 ]
 
 def main():
@@ -24,56 +24,34 @@ def main():
 
     # Quantos pavimentos o usuário quer cadastrar?
     n = st.number_input(
-        "Quantos tipos de pavimento deseja lançar?",
+        "Quantos pavimentos deseja lançar?",
         min_value=1, max_value=20, value=1, step=1
     )
 
-    # Coleto os dados em listas
-    nomes = []
-    tipos = []
-    areas = []
-    repeticoes = []
-
     st.header("Dados dos Pavimentos")
-    for i in range(1, n + 1):
-        st.subheader(f"Pavimento #{i}")
-        col1, col2 = st.columns(2)
-        with col1:
-            nome = st.text_input(f"Nome do Pavimento #{i}", value=f"Pavimento {i}", key=f"nome_{i}")
-            tipo = st.selectbox(f"Tipo #{i}", TIPOS_PAVIMENTO, key=f"tipo_{i}")
-        with col2:
-            area = st.number_input(
-                f"Área (m²) #{i}",
-                min_value=0.0,
-                value=100.0,
-                step=1.0,
-                format="%.2f",
-                key=f"area_{i}"
-            )
-            rep = st.number_input(
-                f"Repetição #{i}",
-                min_value=1,
-                value=1,
-                step=1,
-                key=f"rep_{i}"
-            )
 
-        nomes.append(nome)
-        tipos.append(tipo)
-        areas.append(area)
-        repeticoes.append(rep)
+    # Inicializa o DataFrame com n linhas
+    data = {
+        "Nome do Pavimento": [f"Pavimento {i+1}" for i in range(n)],
+        "Tipo de Pavimento": ["Térreo" for _ in range(n)],  # Valor padrão
+        "Área (m²)": [100.0 for _ in range(n)],  # Valor padrão
+        "Repetição": [1 for _ in range(n)]  # Valor padrão
+    }
+    df = pd.DataFrame(data)
 
-    # Monta DataFrame
-    df = pd.DataFrame({
-        "Nome do Pavimento": nomes,
-        "Tipo de Pavimento": tipos,
-        "Área (m²)": areas,
-        "Repetição": repeticoes
-    })
-    df["Área x Repetição (m²)"] = df["Área (m²)"] * df["Repetição"]
+    # Editor de dados dinâmico
+    edited_df = st.data_editor(  # Usando st.data_editor
+        df,
+        column_config={
+            "Tipo de Pavimento": st.column_config.selectbox(options=TIPOS_PAVIMENTO)
+        },
+        num_rows="dynamic",
+        use_container_width=True
+    )
 
-    # Cálculo final
-    total_area = df["Área x Repetição (m²)"].sum()
+    # Cálculo de área
+    edited_df["Área x Repetição (m²)"] = edited_df["Área (m²)"] * edited_df["Repetição"]
+    total_area = edited_df["Área x Repetição (m²)"] .sum()
     budget = total_area * unit_cost
 
     # Resultados
@@ -82,7 +60,7 @@ def main():
     st.write(f"- Orçamento estimado: **R$ {budget:,.2f}**")
 
     st.subheader("Detalhamento por Pavimento")
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(edited_df, use_container_width=True)
 
 
 if __name__ == "__main__":
