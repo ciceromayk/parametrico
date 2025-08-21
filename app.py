@@ -7,7 +7,8 @@ import plotly.express as px
 
 # --- 1. CONFIGURAÇÃO E GESTÃO DE DADOS ---
 JSON_PATH = "projects.json"
-HISTORICO_PATH = "historico_obras.json"
+HISTORICO_DIRETO_PATH = "historico_direto.json"
+HISTORICO_INDIRETO_PATH = "historico_indireto.json"
 
 # --- DADOS E COEFICIENTES DO NEGÓCIO ---
 TIPOS_PAVIMENTO = {
@@ -20,26 +21,35 @@ TIPOS_PAVIMENTO = {
 DEFAULT_PAVIMENTO = {"nome": "Pavimento Tipo", "tipo": "Área Privativa (Autônoma)", "rep": 1, "coef": 1.00, "area": 100.0, "constr": True}
 
 ETAPAS_OBRA = {
-    "Serviços Preliminares e Fundações":       (7.0, 8.0, 9.0),
-    "Estrutura (Supraestrutura)":              (14.0, 16.0, 22.0),
-    "Vedações (Alvenaria)":                    (8.0, 10.0, 15.0),
-    "Cobertura e Impermeabilização":           (4.0, 5.0, 8.0),
-    "Revestimentos de Fachada":                (5.0, 6.0, 10.0),
-    "Instalações (Elétrica e Hidráulica)":      (12.0, 15.0, 18.0),
-    "Esquadrias (Portas e Janelas)":           (6.0, 8.0, 12.0),
-    "Revestimentos de Piso":                   (8.0, 10.0, 15.0),
-    "Revestimentos de Parede":                 (6.0, 8.0, 12.0),
-    "Revestimentos de Forro":                  (3.0, 4.0, 6.0),
-    "Pintura":                                 (4.0, 5.0, 8.0),
-    "Serviços Complementares e Externos":      (3.0, 5.0, 10.0)
+    "Serviços Preliminares e Fundações":       (7.0, 8.0, 9.0), "Estrutura (Supraestrutura)":              (14.0, 16.0, 22.0),
+    "Vedações (Alvenaria)":                    (8.0, 10.0, 15.0), "Cobertura e Impermeabilização":           (4.0, 5.0, 8.0),
+    "Revestimentos de Fachada":                (5.0, 6.0, 10.0), "Instalações (Elétrica e Hidráulica)":      (12.0, 15.0, 18.0),
+    "Esquadrias (Portas e Janelas)":           (6.0, 8.0, 12.0), "Revestimentos de Piso":                   (8.0, 10.0, 15.0),
+    "Revestimentos de Parede":                 (6.0, 8.0, 12.0), "Revestimentos de Forro":                  (3.0, 4.0, 6.0),
+    "Pintura":                                 (4.0, 5.0, 8.0), "Serviços Complementares e Externos":      (3.0, 5.0, 10.0)
 }
 
+# <<< 1. CUSTOS INDIRETOS ATUALIZADOS CONFORME IMAGEM
 DEFAULT_CUSTOS_INDIRETOS = {
-    "IRPJ/CS/PIS/COFINS":       (3.0, 4.8, 6.5), "Corretagem":                      (3.0, 3.6, 5.0),
-    "Publicidade":                       (0.5, 0.9, 2.0), "Manutenção":                      (0.3, 0.5, 1.0),
-    "Custo Fixo da Construtora / Incorporadora": (3.0, 4.0, 6.0), "Assessoria Técnica":                (0.5, 0.7, 1.5),
-    "Projetos":                          (0.4, 0.5, 1.0), "Licenças e Incorporação":         (0.1, 0.2, 0.5),
+    "IRPJ/ CS/ PIS/ COFINS":       (3.0, 4.0, 6.0),
+    "Corretagem":                      (3.0, 3.61, 5.0),
+    "Publicidade":                       (0.5, 0.9, 2.0),
+    "Manutenção":                      (0.3, 0.5, 1.0),
+    "Custo Fixo da Incorporadora": (3.0, 4.0, 6.0),
+    "Assessoria Técnica":                (0.5, 0.7, 1.5),
+    "Projetos":                          (0.4, 0.52, 1.5),
+    "Licenças e Incorporação":         (0.1, 0.2, 0.5),
+    "Outorga Onerosa":                 (0.0, 0.0, 2.0),
+    "Condomínio":                      (0.0, 0.0, 0.5),
+    "IPTU":                            (0.05, 0.07, 0.2),
+    "Preparação do Terreno":           (0.2, 0.33, 1.0),
+    "Financiamento Bancário":            (1.0, 1.9, 3.0),
 }
+# Custos fixos separados para não entrarem na redistribuição de percentuais
+DEFAULT_CUSTOS_INDIRETOS_FIXOS = {
+    "Juros Financiamento Estimado Durante Obra": 0.0
+}
+
 
 # --- FUNÇÕES AUXILIARES ---
 def init_storage(path):
@@ -96,18 +106,23 @@ def handle_percentage_redistribution(session_key, constants_dict):
     
     st.session_state[previous_key] = {k: v.copy() for k, v in current.items()}; st.rerun()
 
-def save_to_historico(info):
-    historico = load_json(HISTORICO_PATH)
-    percentuais = {k: v['percentual'] for k, v in info['etapas_percentuais'].items()}
+def save_to_historico(info, tipo_custo):
+    path = HISTORICO_DIRETO_PATH if tipo_custo == 'direto' else HISTORICO_INDIRETO_PATH
+    session_key = 'etapas_percentuais' if tipo_custo == 'direto' else 'custos_indiretos_percentuais'
+    
+    historico = load_json(path)
+    percentuais = {k: v['percentual'] for k, v in info[session_key].items()}
+    
     nova_entrada = {
         "id": (max(p["id"] for p in historico) + 1) if historico else 1,
         "nome": info["nome"],
         "data": datetime.now().strftime("%Y-%m-%d"),
-        "etapas_percentuais": percentuais
+        "percentuais": percentuais
     }
     historico.append(nova_entrada)
-    save_json(historico, HISTORICO_PATH)
-    st.toast(f"'{info['nome']}' arquivado no histórico!", icon="📚")
+    save_json(historico, path)
+    st.toast(f"Custos {tipo_custo} de '{info['nome']}' arquivados no histórico!", icon="📚")
+
 
 # --- PÁGINA 1: ORÇAMENTO DIRETO ---
 def page_budget_tool():
@@ -196,15 +211,15 @@ def page_budget_tool():
                 st.session_state.previous_etapas_percentuais = {k: v.copy() for k, v in st.session_state.etapas_percentuais.items()}
             
             st.markdown("##### Comparativo com Histórico de Obras")
-            obras_historicas = load_json(HISTORICO_PATH)
-            obra_ref_selecionada = st.selectbox("Usar como Referência:", ["Nenhuma"] + [f"{o['id']} – {o['nome']}" for o in obras_historicas], index=0)
+            obras_historicas = load_json(HISTORICO_DIRETO_PATH)
+            obra_ref_selecionada = st.selectbox("Usar como Referência:", ["Nenhuma"] + [f"{o['id']} – {o['nome']}" for o in obras_historicas], index=0, key="ref_direto")
             
             ref_percentuais, ref_nome = {}, None
             if obra_ref_selecionada != "Nenhuma":
                 ref_id = int(obra_ref_selecionada.split("–")[0].strip())
                 ref_nome = obra_ref_selecionada.split("–")[1].strip()
                 obra_ref_data = next((o for o in obras_historicas if o['id'] == ref_id), None)
-                if obra_ref_data: ref_percentuais = obra_ref_data['etapas_percentuais']
+                if obra_ref_data: ref_percentuais = obra_ref_data['percentuais']
             
             st.divider()
             cols = st.columns([2, 1.5, 1, 2, 1.5, 1])
@@ -257,22 +272,62 @@ def page_viability_analysis():
     preco_medio_venda_m2 = custos_config.get('preco_medio_venda_m2', 10000.0)
     vgv_total = info.get('area_privativa', 0) * preco_medio_venda_m2
 
-    st.header("Detalhamento de Custos Totais")
-    with st.container(border=True):
+    with st.expander("Detalhamento de Custos Totais", expanded=True):
         st.metric("Custo Direto Total da Obra", f"R$ {fmt_br(custo_direto_total)}")
         st.divider()
         st.subheader("Custos Indiretos (calculados sobre o VGV)")
-        
+
         if 'custos_indiretos_percentuais' not in st.session_state:
             custos_salvos = info.get('custos_indiretos_percentuais', {})
-            st.session_state.custos_indiretos_percentuais = {item: custos_salvos.get(item, vals[1]) for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
+            st.session_state.custos_indiretos_percentuais = {item: {"percentual": custos_salvos.get(item, vals[1]), "fonte": "Manual"} for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
+        
+        if 'previous_custos_indiretos_percentuais' not in st.session_state: 
+            st.session_state.previous_custos_indiretos_percentuais = {k: v.copy() for k, v in st.session_state.custos_indiretos_percentuais.items()}
+
+        obras_historicas = load_json(HISTORICO_INDIRETO_PATH)
+        obra_ref_selecionada = st.selectbox("Usar como Referência (Custos Indiretos):", ["Nenhuma"] + [f"{o['id']} – {o['nome']}" for o in obras_historicas], index=0, key="ref_indireto")
+        
+        ref_percentuais, ref_nome = {}, None
+        if obra_ref_selecionada != "Nenhuma":
+            ref_id = int(obra_ref_selecionada.split("–")[0].strip())
+            ref_nome = obra_ref_selecionada.split("–")[1].strip()
+            obra_ref_data = next((o for o in obras_historicas if o['id'] == ref_id), None)
+            if obra_ref_data: ref_percentuais = obra_ref_data['percentuais']
+        
+        st.divider()
+        cols = st.columns([2, 1.5, 1, 2, 1.5, 1])
+        cols[0].markdown("**Item**"); cols[1].markdown("**Fonte**"); cols[2].markdown("**Ref. (%)**")
+        cols[3].markdown("**Seu Projeto (%)**"); cols[4].markdown("<p style='text-align: center;'>Custo (R$)</p>", unsafe_allow_html=True); cols[5].markdown("<p style='text-align: center;'>Ação</p>", unsafe_allow_html=True)
 
         custo_indireto_calculado = 0
         for item, (min_val, default_val, max_val) in DEFAULT_CUSTOS_INDIRETOS.items():
-            current_percent = st.session_state.custos_indiretos_percentuais.get(item, default_val)
-            percent_atual = st.slider(f"{item} (%)", min_value=min_val, max_value=max_val, value=float(current_percent), step=0.1, key=f"indireto_{item}")
-            st.session_state.custos_indiretos_percentuais[item] = percent_atual
-            custo_indireto_calculado += vgv_total * (percent_atual / 100.0)
+            c = st.columns([2, 1.5, 1, 2, 1.5, 1])
+            c[0].container(height=38, border=False).write(item)
+            item_info = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val, "fonte": "Manual"})
+            c[1].container(height=38, border=False).write(item_info['fonte'])
+            ref_val = ref_percentuais.get(item, 0)
+            c[2].container(height=38, border=False).write(f"{ref_val:.2f}%" if obra_ref_selecionada != "Nenhuma" else "-")
+            current_percent = item_info['percentual']
+            percent_atual = c[3].slider("slider", min_val, max_val, float(current_percent), 0.1, key=f"slider_indireto_{item}", label_visibility="collapsed")
+            
+            if abs(percent_atual - st.session_state.previous_custos_indiretos_percentuais.get(item, {}).get('percentual', -1)) > 0.01:
+                st.session_state.custos_indiretos_percentuais[item]['fonte'] = "Manual"
+            st.session_state.custos_indiretos_percentuais[item]['percentual'] = percent_atual
+
+            custo_item = vgv_total * (percent_atual / 100)
+            c[4].markdown(f"<p style='text-align: center;'>R$ {fmt_br(custo_item)}</p>", unsafe_allow_html=True)
+            custo_indireto_calculado += custo_item
+
+            if c[5].button("⬅️", key=f"apply_indireto_{item}", help=f"Aplicar percentual de referência ({ref_val:.2f}%)", use_container_width=True):
+                    if ref_nome:
+                        st.session_state.custos_indiretos_percentuais[item]['percentual'] = ref_val
+                        st.session_state.custos_indiretos_percentuais[item]['fonte'] = ref_nome
+                        st.rerun()
+
+        custos_indiretos_fixos = info.get('custos_indiretos_fixos', DEFAULT_CUSTOS_INDIRETOS_FIXOS)
+        for item, valor in custos_indiretos_fixos.items():
+            custos_indiretos_fixos[item] = st.number_input(item, value=float(valor), format="%.2f")
+            custo_indireto_calculado += custos_indiretos_fixos[item]
         
         st.divider()
         st.metric("Custo Indireto Total (Calculado)", f"R$ {fmt_br(custo_indireto_calculado)}")
@@ -284,27 +339,28 @@ def page_viability_analysis():
     valor_total_despesas = custo_direto_total + custo_indireto_calculado + custo_terreno_total
     lucratividade_valor = vgv_total - valor_total_despesas
     lucratividade_percentual = (lucratividade_valor / vgv_total) * 100 if vgv_total > 0 else 0
-    st.header("Resultados e Indicadores Chave")
-    with st.container(border=True):
+    
+    with st.expander("Resultados e Indicadores Chave", expanded=True):
+        cores = ["#00829d", "#6a42c1", "#3c763d", "#a94442"]
+        st.subheader("Resultados Financeiros")
         res_cols = st.columns(4)
-        res_cols[0].metric("VGV Total", f"R$ {fmt_br(vgv_total)}")
-        res_cols[1].metric("Custo Total do Empreendimento", f"R$ {fmt_br(valor_total_despesas)}")
-        res_cols[2].metric("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}")
-        res_cols[3].metric("Margem de Lucro", f"{lucratividade_percentual:.2f}%")
+        res_cols[0].markdown(render_metric_card("VGV Total", f"R$ {fmt_br(vgv_total)}", cores[0]), unsafe_allow_html=True)
+        res_cols[1].markdown(render_metric_card("Custo Total", f"R$ {fmt_br(valor_total_despesas)}", cores[1]), unsafe_allow_html=True)
+        res_cols[2].markdown(render_metric_card("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}", cores[2]), unsafe_allow_html=True)
+        res_cols[3].markdown(render_metric_card("Margem de Lucro", f"{lucratividade_percentual:.2f}%", cores[3]), unsafe_allow_html=True)
+        
         st.divider()
         st.subheader("Indicadores por Área Construída")
-        indicadores_data = {
-            'TERRENO % Custo Total': [f"{(custo_terreno_total / valor_total_despesas * 100 if valor_total_despesas > 0 else 0):.2f}%"],
-            'CUSTO DIRETO (R$/m²)': [f"R$ {fmt_br(custo_direto_total / area_construida_total if area_construida_total > 0 else 0)}"],
-            'CUSTO INDIRETO (R$/m²)': [f"R$ {fmt_br(custo_indireto_calculado / area_construida_total if area_construida_total > 0 else 0)}"],
-            'CUSTO TOTAL (R$/m²)': [f"R$ {fmt_br(valor_total_despesas / area_construida_total if area_construida_total > 0 else 0)}"]
-        }
-        st.table(pd.DataFrame(indicadores_data))
+        ind_cols = st.columns(4)
+        ind_cols[0].markdown(render_metric_card("Terreno / Custo Total", f"{(custo_terreno_total / valor_total_despesas * 100 if valor_total_despesas > 0 else 0):.2f}%"), unsafe_allow_html=True)
+        ind_cols[1].markdown(render_metric_card("Custo Direto / m²", f"R$ {fmt_br(custo_direto_total / area_construida_total if area_construida_total > 0 else 0)}"), unsafe_allow_html=True)
+        ind_cols[2].markdown(render_metric_card("Custo Indireto / m²", f"R$ {fmt_br(custo_indireto_calculado / area_construida_total if area_construida_total > 0 else 0)}"), unsafe_allow_html=True)
+        ind_cols[3].markdown(render_metric_card("Custo Total / m²", f"R$ {fmt_br(valor_total_despesas / area_construida_total if area_construida_total > 0 else 0)}"), unsafe_allow_html=True)
 
 # --- CONTROLE PRINCIPAL DA APLICAÇÃO ---
 def main():
     st.set_page_config(page_title="Orçamento Paramétrico", layout="wide")
-    init_storage(JSON_PATH); init_storage(HISTORICO_PATH)
+    init_storage(JSON_PATH); init_storage(HISTORICO_DIRETO_PATH); init_storage(HISTORICO_INDIRETO_PATH)
 
     if "projeto_info" not in st.session_state:
         st.header("🏢 Orçamento Paramétrico – Gestão de Projetos")
@@ -330,7 +386,8 @@ def main():
                     "custos_config": {"custo_terreno_m2": 2500.0, "custo_area_privativa": 4500.0, "preco_medio_venda_m2": 10000.0},
                     "etapas_percentuais": {etapa: {"percentual": vals[1], "fonte": "Manual"} for etapa, vals in ETAPAS_OBRA.items()},
                     "pavimentos": [DEFAULT_PAVIMENTO.copy()],
-                    "custos_indiretos_percentuais": {item: vals[1] for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
+                    "custos_indiretos_percentuais": {item: {"percentual": vals[1], "fonte": "Manual"} for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()},
+                    "custos_indiretos_fixos": DEFAULT_CUSTOS_INDIRETOS_FIXOS.copy()
                 }
                 save_project(info); st.session_state.projeto_info = info; st.rerun()
     else:
@@ -364,13 +421,16 @@ def main():
             info['custos_indiretos_percentuais'] = st.session_state.custos_indiretos_percentuais
             save_project(st.session_state.projeto_info); st.sidebar.success("Projeto salvo com sucesso!")
         
-        if st.sidebar.button("📚 Arquivar Custos no Histórico", use_container_width=True):
-            # Sincroniza os dados da sessão antes de arquivar
-            info['etapas_percentuais'] = st.session_state.etapas_percentuais
-            save_to_historico(info)
+        with st.sidebar.expander("📚 Arquivar no Histórico"):
+            if st.button("Arquivar Custos Diretos", use_container_width=True):
+                info['etapas_percentuais'] = st.session_state.etapas_percentuais
+                save_to_historico(info, 'direto')
+            if st.button("Arquivar Custos Indiretos", use_container_width=True):
+                info['custos_indiretos_percentuais'] = st.session_state.custos_indiretos_percentuais
+                save_to_historico(info, 'indireto')
         
         if st.sidebar.button("Mudar de Projeto", use_container_width=True):
-            keys_to_delete = ["projeto_info", "pavimentos", "etapas_percentuais", "previous_etapas_percentuais", "previous_custos_indiretos_percentuais"]
+            keys_to_delete = ["projeto_info", "pavimentos", "etapas_percentuais", "previous_etapas_percentuais", "custos_indiretos_percentuais", "previous_custos_indiretos_percentuais"]
             for key in keys_to_delete:
                 if key in st.session_state: del st.session_state[key]
             st.rerun()
