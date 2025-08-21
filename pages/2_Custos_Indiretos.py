@@ -53,19 +53,19 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         else:
             st.session_state.custos_indiretos_percentuais = {item: custos_salvos.get(item, {"percentual": vals[1], "fonte": "Manual"}) for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
 
-    # PASSO 1: Preparar os Dados (Renomeando a coluna)
+    # PASSO 1: Preparar os Dados para o AgGrid
     dados_tabela = []
     for item, (min_val, default_val, max_val) in DEFAULT_CUSTOS_INDIRETOS.items():
         percentual_atual = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val})['percentual']
         custo_calculado = vgv_total * (percentual_atual / 100)
         dados_tabela.append({
             "Item": item,
-            "%": percentual_atual, # <-- Coluna renomeada aqui
+            "%": percentual_atual,
             "Custo (R$)": custo_calculado,
         })
     df = pd.DataFrame(dados_tabela)
 
-    # PASSO 2: Configurar o AgGrid com as novas regras
+    # PASSO 2: Configurar o AgGrid
     st.write("### Edite os percentuais de cada custo abaixo:")
     
     gb = GridOptionsBuilder.from_dataframe(df)
@@ -77,43 +77,44 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         }
     """)
 
-    # --- ALTERAÇÕES AQUI ---
-    # Definimos larguras fixas e ajustamos a coluna de percentual
-    gb.configure_column("Item", headerName="Item", width=1350, resizable=False)
+    gb.configure_column("Item", headerName="Item", width=350, resizable=False)
     gb.configure_column("%", headerName="%", editable=True, width=100, resizable=False,
                         type=["numericColumn", "numberColumnFilter", "customNumericFormat"],
-                        precision=2) # <-- Precisão de 2 casas decimais
+                        precision=2)
     gb.configure_column("Custo (R$)", headerName="Custo (R$)", valueFormatter=jscode_formatador_moeda, width=200, resizable=False,
                         type=["numericColumn", "numberColumnFilter"])
     
     gridOptions = gb.build()
 
-    grid_response = AgGrid(
-        df,
-        gridOptions=gridOptions,
-        height=500,
-        width='100%',
-        update_mode='MODEL_CHANGED',
-        allow_unsafe_jscode=True,
-        try_convert_numeric_dtypes=True,
-        theme='streamlit'
-    )
+    # SUGESTÃO DE DESIGN: Centralizar a tabela
+    _ , col_tabela, _ = st.columns([1, 10, 1])
+    with col_tabela:
+        grid_response = AgGrid(
+            df,
+            gridOptions=gridOptions,
+            height=500,
+            width='100%',
+            update_mode='MODEL_CHANGED',
+            allow_unsafe_jscode=True,
+            try_convert_numeric_dtypes=True,
+            theme='streamlit'
+        )
     
-    # PASSO 3: Usar os Dados Editados (Ajuste no nome da coluna)
+    # PASSO 3: Usar os Dados Editados
     edited_df = grid_response['data']
     
-    # Usamos o novo nome da coluna "%" para o cálculo
     edited_df["Custo (R$)"] = vgv_total * (pd.to_numeric(edited_df["%"], errors='coerce').fillna(0) / 100)
     custo_indireto_calculado = edited_df["Custo (R$)"].sum()
 
-    # Atualizamos o session_state com o novo nome da coluna
     for index, row in edited_df.iterrows():
         item_nome = row["Item"]
         novo_percentual = row["%"]
         st.session_state.custos_indiretos_percentuais[item_nome]['percentual'] = novo_percentual
 
-    st.divider()
-
+    # SUGESTÃO DE DESIGN: Adicionar espaçamento e título para o resumo
+    st.write("<br><br>", unsafe_allow_html=True)
+    st.subheader("Resumo do Custo Indireto")
+    
     # Exibição do card do total
     _, col_metrica = st.columns([2, 1])
     with col_metrica:
