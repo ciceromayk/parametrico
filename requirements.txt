@@ -1,5 +1,4 @@
 streamlit
 pandas
-pip
 plotly
-fpdf
+fpdf2
