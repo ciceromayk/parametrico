@@ -111,14 +111,17 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         novo_percentual = row["%"]
         st.session_state.custos_indiretos_percentuais[item_nome]['percentual'] = novo_percentual
 
-    # SUGESTÃO DE DESIGN: Adicionar espaçamento e título para o resumo
-    st.write("<br><br>", unsafe_allow_html=True)
+    # --- ALTERAÇÃO NO LAYOUT DO CARD FINAL ---
+
+    # Adicionamos um espaçamento vertical para separar a tabela do card
+    st.write("<br>", unsafe_allow_html=True)
     
-    # Exibição do card do total
-    _, col_metrica = st.columns([2, 1])
+    # Usamos colunas para centralizar o card, alinhando-o com a tabela
+    # A proporção [2, 1, 2] significa: 2 partes vazias, 1 parte para o card, 2 partes vazias
+    _, col_metrica, _ = st.columns([2, 1, 2])
+    
     with col_metrica:
         card_metric(
             label="Custo Indireto Total",
             value=f"R$ {fmt_br(custo_indireto_calculado)}",
             icon_name="cash-coin"
-        )
