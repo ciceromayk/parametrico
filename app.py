@@ -1,11 +1,16 @@
 import streamlit as st
 import pandas as pd
 
+TIPOS_PAVIMENTO = [
+    "Subsolo", "Térreo", "Sobressolo",
+    "Lazer", "Coberta", "Outro"
+]
+
 def main():
     st.set_page_config(page_title="Orçamento Paramétrico", layout="centered")
     st.title("Orçamento Paramétrico de Edifícios Residenciais")
 
-    # Sidebar: custo unitário por m²
+    # Parâmetro de custo
     st.sidebar.header("Parâmetros de Cálculo")
     unit_cost = st.sidebar.number_input(
         "Custo unitário (R$/m²)",
@@ -17,52 +22,68 @@ def main():
     st.sidebar.markdown("---")
     st.sidebar.markdown("© 2025 Seu Nome ou Empresa")
 
-    # Seção de dados dos pavimentos
+    # Quantos pavimentos o usuário quer cadastrar?
+    n = st.number_input(
+        "Quantos tipos de pavimento deseja lançar?",
+        min_value=1, max_value=20, value=1, step=1
+    )
+
+    # Coleto os dados em listas
+    nomes = []
+    tipos = []
+    areas = []
+    repeticoes = []
+
     st.header("Dados dos Pavimentos")
-    st.markdown("Preencha a tabela abaixo com os pavimentos do projeto:")
+    for i in range(1, n + 1):
+        st.subheader(f"Pavimento #{i}")
+        col1, col2 = st.columns(2)
+        with col1:
+            nome = st.text_input(f"Nome do Pavimento #{i}", value=f"Pavimento {i}", key=f"nome_{i}")
+            tipo = st.selectbox(f"Tipo #{i}", TIPOS_PAVIMENTO, key=f"tipo_{i}")
+        with col2:
+            area = st.number_input(
+                f"Área (m²) #{i}",
+                min_value=0.0,
+                value=100.0,
+                step=1.0,
+                format="%.2f",
+                key=f"area_{i}"
+            )
+            rep = st.number_input(
+                f"Repetição #{i}",
+                min_value=1,
+                value=1,
+                step=1,
+                key=f"rep_{i}"
+            )
 
-    # Dados iniciais da tabela
-    default_data = {
-        "Nome do Pavimento": ["Térreo"],
-        "Tipo de Pavimento": ["Térreo"],  # Opções: Subsolo, Térreo, Sobressolo, Lazer, Coberta, etc.
-        "Área (m²)": [100.0],
-        "Repetição": [1]
-    }
-    df = pd.DataFrame(default_data)
+        nomes.append(nome)
+        tipos.append(tipo)
+        areas.append(area)
+        repeticoes.append(rep)
 
-    # Editor de dados dinâmico
-    edited_df = st.experimental_data_editor(
-        df,
-        num_rows="dynamic",
-        use_container_width=True
-    )
+    # Monta DataFrame
+    df = pd.DataFrame({
+        "Nome do Pavimento": nomes,
+        "Tipo de Pavimento": tipos,
+        "Área (m²)": areas,
+        "Repetição": repeticoes
+    })
+    df["Área x Repetição (m²)"] = df["Área (m²)"] * df["Repetição"]
 
-    # Cálculo de área considerando repetições
-    edited_df["Área x Repetição (m²)"] = (
-        edited_df["Área (m²)"] * edited_df["Repetição"]
-    )
-
-    # Cálculo do orçamento
-    total_area = edited_df["Área x Repetição (m²)"].sum()
+    # Cálculo final
+    total_area = df["Área x Repetição (m²)"].sum()
     budget = total_area * unit_cost
 
-    # Exibição de resultados
+    # Resultados
     st.subheader("Resultados")
-    st.write(f"Área total (com repetições): **{total_area:,.2f} m²**")
-    st.write(f"Orçamento estimado: **R$ {budget:,.2f}**")
+    st.write(f"- Área total (com repetições): **{total_area:,.2f} m²**")
+    st.write(f"- Orçamento estimado: **R$ {budget:,.2f}**")
 
-    # Detalhamento por pavimento
     st.subheader("Detalhamento por Pavimento")
-    st.dataframe(
-        edited_df[[
-            "Nome do Pavimento",
-            "Tipo de Pavimento",
-            "Área (m²)",
-            "Repetição",
-            "Área x Repetição (m²)"
-        ]],
-        use_container_width=True
-    )
+    st.dataframe(df, use_container_width=True)
+
 
 if __name__ == "__main__":
     main()
