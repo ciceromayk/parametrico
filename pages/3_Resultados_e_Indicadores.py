@@ -8,7 +8,7 @@ st.set_page_config(page_title="Resultados e Indicadores", layout="wide")
 if "projeto_info" not in st.session_state:
     st.error("Nenhum projeto carregado. Por favor, selecione um projeto na página inicial.")
     if st.button("Voltar para a seleção de projetos"):
-        st.switch_page("app.py")
+        st.switch_page("Início.py")
     st.stop()
 
 render_sidebar()
@@ -67,27 +67,4 @@ with st.container(border=True):
         p_direto = (custo_direto_total / valor_total_despesas * 100)
         p_indireto = (custo_indireto_calculado / valor_total_despesas * 100)
         p_terreno = (custo_terreno_total / valor_total_despesas * 100)
-        comp_cols[0].markdown(render_metric_card(f"Custo Direto ({p_direto:.2f}%)", f"R$ {fmt_br(custo_direto_total)}"), unsafe_allow_html=True)
-        comp_cols[1].markdown(render_metric_card(f"Custo Indireto ({p_indireto:.2f}%)", f"R$ {fmt_br(custo_indireto_calculado)}"), unsafe_allow_html=True)
-        comp_cols[2].markdown(render_metric_card(f"Custo do Terreno ({p_terreno:.2f}%)", f"R$ {fmt_br(custo_terreno_total)}"), unsafe_allow_html=True)
-
-    st.divider()
-    st.subheader("Resultados Financeiros")
-    res_cols = st.columns(4)
-    res_cols[0].markdown(render_metric_card("VGV Total", f"R$ {fmt_br(vgv_total)}", cores[0]), unsafe_allow_html=True)
-    res_cols[1].markdown(render_metric_card("Custo Total", f"R$ {fmt_br(valor_total_despesas)}", cores[1]), unsafe_allow_html=True)
-    res_cols[2].markdown(render_metric_card("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}", cores[2]), unsafe_allow_html=True)
-    res_cols[3].markdown(render_metric_card("Margem de Lucro", f"{lucratividade_percentual:.2f}%", cores[3]), unsafe_allow_html=True)
-
-    st.divider()
-    st.subheader("Exportar Relatório")
-    pdf_bytes = generate_pdf_report(
-        info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
-        custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total
-    )
-    st.download_button(
-        label="📄 Gerar Relatório PDF",
-        data=pdf_bytes,
-        file_name=f"Relatorio_Viabilidade_{info['nome'].replace(' ', '_')}.pdf",
-        mime="application/pdf"
-    )
+        comp_cols[0].markdown(render_metric_card(f"Custo Direto ({p_direto:.2f}%)", f"R$ {fmt_br(custo_direto_total)}"), unsafe_allow_
