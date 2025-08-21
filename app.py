@@ -1,3 +1,39 @@
+Entendido. Ótima sugestão para dar ainda mais granularidade ao detalhamento dos custos. Desmembrar os revestimentos é uma prática comum em orçamentos mais detalhados e reflete melhor a realidade da obra.
+
+Para incorporar sua solicitação, eu vou:
+
+1.  Remover a categoria genérica "Revestimentos (Pisos, Paredes, Forros)".
+2.  Adicionar as quatro novas categorias que você mencionou.
+3.  **Rebalancear os percentuais padrão** para incluir o "Revestimento de Fachada" e redistribuir o valor dos revestimentos internos, mantendo a soma total em 100%. Para isso, precisei reduzir um pouco os pesos de "Estrutura" and "Vedações", que são as categorias que mais "conversam" com os revestimentos.
+
+### Nova Estrutura de Etapas da Obra
+
+A nova distribuição de percentuais padrão que vamos utilizar é a seguinte:
+
+  * Serviços Preliminares e Fundações: 8%
+  * Estrutura (Supraestrutura): **16%** *(ajustado)*
+  * Vedações (Alvenaria): **10%** *(ajustado)*
+  * Cobertura e Impermeabilização: 5%
+  * **Revestimentos de Fachada: 6%** *(novo)*
+  * Instalações (Elétrica e Hidráulica): 15%
+  * Esquadrias (Portas e Janelas): 8%
+  * **Revestimentos de Piso: 10%** *(desmembrado)*
+  * **Revestimentos de Parede: 8%** *(desmembrado)*
+  * **Revestimentos de Forro: 4%** *(desmembrado)*
+  * Pintura: 5%
+  * Serviços Complementares e Externos: 5%
+
+**Total: 100%**
+
+A grande vantagem da forma como construímos o código é que esta é uma alteração muito simples. Só precisamos atualizar o nosso dicionário de `ETAPAS_OBRA` e a interface com os sliders se adaptará automaticamente.
+
+-----
+
+### Código Atualizado
+
+Aqui está o código completo com a nova estrutura de etapas implementada. A única alteração está na definição do dicionário `ETAPAS_OBRA`.
+
+```python
 import streamlit as st
 import pandas as pd
 import json
@@ -56,7 +92,7 @@ def fmt_br(valor: float) -> str:
 # --- 2. DADOS E COEFICIENTES DO NEGÓCIO ---
 TIPOS_PAVIMENTO = {
     "Área Privativa (Autônoma)": (1.00, 1.00),
-    "Áreas de lazer ambientadas": (2.00, 4.00), # <<< 5. NOVO TIPO ADICIONADO
+    "Áreas de lazer ambientadas": (2.00, 4.00),
     "Varandas": (0.75, 1.00),
     "Terraços / Áreas Descobertas": (0.30, 0.60),
     "Garagem (Subsolo)": (0.50, 0.75),
@@ -75,9 +111,24 @@ DEFAULT_PAVIMENTO = {
     "rep": 1, "coef": 1.00, "area": 100.0, "constr": True
 }
 
+# <<< DICIONÁRIO DE ETAPAS ATUALIZADO COM AS NOVAS CATEGORIAS
+ETAPAS_OBRA = {
+    "Serviços Preliminares e Fundações": 8.0,
+    "Estrutura (Supraestrutura)": 16.0,
+    "Vedações (Alvenaria)": 10.0,
+    "Cobertura e Impermeabilização": 5.0,
+    "Revestimentos de Fachada": 6.0,
+    "Instalações (Elétrica e Hidráulica)": 15.0,
+    "Esquadrias (Portas e Janelas)": 8.0,
+    "Revestimentos de Piso": 10.0,
+    "Revestimentos de Parede": 8.0,
+    "Revestimentos de Forro": 4.0,
+    "Pintura": 5.0,
+    "Serviços Complementares e Externos": 5.0
+}
+
 # --- 3. FUNÇÕES AUXILIARES DE UI ---
 def render_metric_card(title, value, color="#31708f"):
-    """Renderiza um card de métrica com estilo customizado."""
     return f"""
         <div style="background-color:{color}; border-radius:6px; padding:12px; text-align:center;">
             <div style="color:#fff; font-size:14px; margin-bottom:4px;">{title}</div>
@@ -113,7 +164,8 @@ def page_project_selection():
             info = {
                 "nome": nome, "area_terreno": area_terreno, "area_privativa": area_privativa,
                 "num_unidades": num_unidades, "endereco": "",
-                "custos_config": {"cub": 4500.0, "outros": 0.0}, # <<< 1. BDI REMOVIDO
+                "custos_config": {"cub": 4500.0, "outros": 0.0},
+                "etapas_percentuais": ETAPAS_OBRA, # Salva os percentuais padrão
                 "pavimentos": [DEFAULT_PAVIMENTO]
             }
             pid = save_project(info)
@@ -146,16 +198,18 @@ def page_budget_tool():
         st.markdown("---")
         if st.button("💾 Salvar Todas as Alterações", use_container_width=True, type="primary"):
             info['pavimentos'] = st.session_state.pavimentos
+            if 'etapas_percentuais' in st.session_state:
+                info['etapas_percentuais'] = st.session_state.etapas_percentuais
             save_project(info)
             st.success("Projeto salvo com sucesso!")
         if st.button(" Mudar de Projeto", use_container_width=True):
             del st.session_state.projeto_info
             if 'pavimentos' in st.session_state: del st.session_state.pavimentos
+            if 'etapas_percentuais' in st.session_state: del st.session_state.etapas_percentuais
             st.rerun()
 
     st.title("🏗️ Orçamento Paramétrico de Edifícios")
     
-    # <<< 2. CARDS DE MÉTRICAS RESTAURADOS
     c1, c2, c3, c4 = st.columns(4)
     cores = ["#31708f", "#3c763d", "#8a6d3b", "#a94442"]
     c1.markdown(render_metric_card("Nome", info["nome"], cores[0]), unsafe_allow_html=True)
@@ -175,7 +229,6 @@ def page_budget_tool():
             st.rerun()
 
     col_widths = [3, 3, 1, 1.2, 1.5, 1.5, 1.5, 1.5]
-    # <<< 3. CABEÇALHO DA TABELA ATUALIZADO
     headers = ["Nome", "Tipo", "Rep.", "Coef.", "Área (m²)", "Área Eq. Total", "Área Constr.", "Considerar A.C?"]
     header_cols = st.columns(col_widths)
     for hc, title in zip(header_cols, headers):
@@ -218,60 +271,86 @@ def page_budget_tool():
             priv_area = info["area_privativa"] or 1.0
             custo_por_ac = custo_final_projeto / total_constr if total_constr > 0 else 0.0
             custo_med_unit = custo_final_projeto / info["num_unidades"] if info["num_unidades"] > 0 else 0.0
-            
-            # <<< 2. CARDS DE MÉTRICAS RESTAURADOS NO RESUMO
             st.markdown(render_metric_card("Custo Final do Projeto", f"R$ {fmt_br(custo_final_projeto)}", cores[3]), unsafe_allow_html=True)
             st.markdown(render_metric_card("Custo Médio / Unidade", f"R$ {fmt_br(custo_med_unit)}", "#337ab7"), unsafe_allow_html=True)
             st.markdown(render_metric_card("Custo / m² (Área Constr.)", f"R$ {fmt_br(custo_por_ac)}", cores[1]), unsafe_allow_html=True)
             st.markdown(render_metric_card("Área Construída Total", f"{fmt_br(total_constr)} m²", cores[2]), unsafe_allow_html=True)
-        
         with chart_col2:
             st.markdown("#### 🍰 Composição do Custo Direto")
             custo_por_tipo = df.groupby("tipo")["custo_direto"].sum().reset_index()
-            # <<< 4. GRÁFICO DE PIZZA TROCADO POR GRÁFICO DE BARRAS
             fig = px.bar(custo_por_tipo, x='tipo', y='custo_direto', text_auto='.2s', title="Custo Direto por Tipo de Pavimento")
             fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
             fig.update_layout(xaxis_title=None, yaxis_title="Custo (R$)")
             st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("---")
-        # <<< 6. TÍTULO DA SEÇÃO ATUALIZADO
         st.markdown("### 📑 Detalhamento do Empreendimento")
-        
-        # <<< 7. CABEÇALHOS DA TABELA ATUALIZADOS
         df_display = df.rename(columns={
             "nome": "Nome", "tipo": "Tipo", "rep": "Rep.", "coef": "Coef.", 
             "area": "Área (m²)", "area_eq": "Área Eq. Total (m²)",
             "area_constr": "Área Constr. (m²)", "custo_direto": "Custo Direto (R$)"
         })
         
-        # <<< 6. LÓGICA PARA ADICIONAR LINHA DE TOTAIS
+        colunas_a_exibir = ["Nome", "Tipo", "Rep.", "Coef.", "Área (m²)", "Área Eq. Total (m²)", "Área Constr. (m²)", "Custo Direto (R$)"]
+        df_display = df_display[colunas_a_exibir]
+
         total_area_eq = df["area_eq"].sum()
         total_area_constr = df["area_constr"].sum()
-        total_custo_direto = df["custo_direto"].sum()
-
+        total_custo_direto_df = df["custo_direto"].sum()
         df_display_formatted = df_display.copy()
         for col in ["Área (m²)", "Área Eq. Total (m²)", "Área Constr. (m²)"]:
             df_display_formatted[col] = df_display[col].apply(fmt_br)
         df_display_formatted["Custo Direto (R$)"] = df_display["Custo Direto (R$)"].apply(lambda v: f"R$ {fmt_br(v)}")
-
-        soma_row = pd.DataFrame([{
-            "Nome": "<strong>TOTAL</strong>", "Tipo": "", "Rep.": "", "Coef.": "", "Área (m²)": "",
-            "Área Eq. Total (m²)": f"<strong>{fmt_br(total_area_eq)}</strong>",
-            "Área Constr. (m²)": f"<strong>{fmt_br(total_area_constr)}</strong>",
-            "Custo Direto (R$)": f"<strong>R$ {fmt_br(total_custo_direto)}</strong>"
-        }])
-        
+        soma_row = pd.DataFrame([{"Nome": "<strong>TOTAL</strong>", "Tipo": "","Rep.": "", "Coef.": "","Área (m²)": "",
+                                  "Área Eq. Total (m²)": f"<strong>{fmt_br(total_area_eq)}</strong>",
+                                  "Área Constr. (m²)": f"<strong>{fmt_br(total_area_constr)}</strong>",
+                                  "Custo Direto (R$)": f"<strong>R$ {fmt_br(total_custo_direto_df)}</strong>"}])
         df_final = pd.concat([df_display_formatted, soma_row], ignore_index=True)
-        
-        # <<< 7. CENTRALIZAÇÃO DE TODOS OS DADOS
         st.markdown(df_final.to_html(escape=False, index=False, justify="center"), unsafe_allow_html=True)
+        
+        st.markdown("---")
+        with st.expander("💸 Custo Direto por Etapa da Obra", expanded=True):
+            if 'etapas_percentuais' not in st.session_state:
+                st.session_state.etapas_percentuais = info.get('etapas_percentuais', ETAPAS_OBRA.copy())
+
+            etapas_data = []
+            total_percent = 0
+            
+            # Garante que as etapas no estado da sessão correspondam ao padrão atual
+            current_etapas = st.session_state.etapas_percentuais
+            for etapa_padrao in ETAPAS_OBRA:
+                if etapa_padrao not in current_etapas:
+                    current_etapas[etapa_padrao] = ETAPAS_OBRA[etapa_padrao]
+            
+            # Limpa etapas antigas que não existem mais no padrão
+            etapas_a_remover = [etapa for etapa in current_etapas if etapa not in ETAPAS_OBRA]
+            for etapa in etapas_a_remover:
+                del current_etapas[etapa]
+
+            for etapa, percent_padrao in current_etapas.items():
+                percent_atual = st.slider(etapa, 0.0, 100.0, float(percent_padrao), 0.5, key=f"etapa_{etapa.replace(' ', '_')}")
+                current_etapas[etapa] = percent_atual
+                total_percent += percent_atual
+                custo_etapa = custo_direto_total * (percent_atual / 100)
+                etapas_data.append({"Etapa": etapa, "Percentual (%)": percent_atual, "Custo da Etapa (R$)": custo_etapa})
+
+            st.markdown("---")
+            if round(total_percent, 1) != 100.0:
+                st.warning(f"A soma dos percentuais é de {total_percent:.1f}%. Ajuste os valores para que a soma seja 100%.")
+            else:
+                st.success(f"A soma dos percentuais é 100%.")
+
+            df_etapas = pd.DataFrame(etapas_data)
+            df_etapas["Percentual (%)"] = df_etapas["Percentual (%)"].apply(lambda p: f"{p:.1f}%")
+            df_etapas["Custo da Etapa (R$)"] = df_etapas["Custo da Etapa (R$)"].apply(lambda v: f"R$ {fmt_br(v)}")
+            st.table(df_etapas)
 
         st.markdown("---")
         if st.button("🗑️ Excluir Projeto", help="Apaga o projeto atual e retorna à tela inicial"):
             delete_project(info["id"])
             del st.session_state.projeto_info
             if 'pavimentos' in st.session_state: del st.session_state.pavimentos
+            if 'etapas_percentuais' in st.session_state: del st.session_state.etapas_percentuais
             st.rerun()
 
 def main():
@@ -284,3 +363,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
