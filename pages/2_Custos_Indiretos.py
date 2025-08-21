@@ -98,4 +98,24 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
             progress_value = 0.0
         c[2].progress(progress_value)
         if final_percent != current_percent:
-            st.session_state.custos_indiretos_percentuais
+            st.session_state.custos_indiretos_percentuais[item]['percentual'] = final_percent
+            st.rerun()
+        custo_item = vgv_total * (final_percent / 100)
+        c[3].markdown(f"<p style='text-align: right; line-height: 2.5;'>R$ {fmt_br(custo_item)}</p>", unsafe_allow_html=True)
+        return custo_item
+
+    # Renderiza as colunas (sem alteração)
+    for item_tuple in items_list[:mid_point]:
+        custo_indireto_calculado += render_item(item_tuple, col1)
+    
+    for item_tuple in items_list[mid_point:]:
+        custo_indireto_calculado += render_item(item_tuple, col2)
+
+    st.divider()
+    
+    _, col_metrica = st.columns([2, 1])
+    with col_metrica:
+        card_metric(
+            label="Custo Indireto Total",
+            value=f"R$ {fmt_br(custo_indireto_calculado)}"
+        )
