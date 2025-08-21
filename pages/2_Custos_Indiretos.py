@@ -79,7 +79,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
 
     # --- ALTERAÇÕES AQUI ---
     # Definimos larguras fixas e ajustamos a coluna de percentual
-    gb.configure_column("Item", headerName="Item", width=350, resizable=False)
+    gb.configure_column("Item", headerName="Item", width=1350, resizable=False)
     gb.configure_column("%", headerName="%", editable=True, width=100, resizable=False,
                         type=["numericColumn", "numberColumnFilter", "customNumericFormat"],
                         precision=2) # <-- Precisão de 2 casas decimais
