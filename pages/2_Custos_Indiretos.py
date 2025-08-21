@@ -48,7 +48,8 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
 
     # PASSO 1: Preparar os Dados para o Data Editor
     dados_tabela = []
-    for item, (min_val, default_val, max_val) in DEFAULT_Cस्तOS_INDIRETOS.items():
+    # CORREÇÃO: Corrija o nome da variável na linha abaixo
+    for item, (min_val, default_val, max_val) in DEFAULT_CUSTOS_INDIRETOS.items():
         percentual_atual = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val})['percentual']
         dados_tabela.append({
             "Item": item,
