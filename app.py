@@ -1,25 +1,23 @@
 import streamlit as st
 import pandas as pd
 
-# -------------------------------------------------------------------
-# Dicionário de tipos de pavimento + intervalo de coeficientes
-# (conforme NBR 12721 – item 5.7.3)
+# Dicionário de tipos de pavimento + coeficientes (NBR 12721 – item 5.7.3)
 TIPOS_PAVIMENTO = {
-    "Garagem (Subsolo)":               (0.50, 0.75),
-    "Área Privativa (Autônoma)":       (1.00, 1.00),
-    "Salas com Acabamento":            (1.00, 1.00),
-    "Salas sem Acabamento":            (0.75, 0.90),
-    "Loja sem Acabamento":             (0.40, 0.60),
-    "Varandas":                        (0.75, 1.00),
-    "Terraços / Áreas Descobertas":    (0.30, 0.60),
-    "Estacionamento (terreno)":        (0.05, 0.10),
-    "Projeção Terreno sem Benfeitoria":(0.00, 0.00),
+    "Garagem (Subsolo)":              (0.50, 0.75),
+    "Área Privativa (Autônoma)":      (1.00, 1.00),
+    "Salas com Acabamento":           (1.00, 1.00),
+    "Salas sem Acabamento":           (0.75, 0.90),
+    "Loja sem Acabamento":            (0.40, 0.60),
+    "Varandas":                       (0.75, 1.00),
+    "Terraços / Áreas Descobertas":   (0.30, 0.60),
+    "Estacionamento (terreno)":       (0.05, 0.10),
+    "Projeção Terreno sem Benfeitoria": (0.00, 0.00),
     "Serviço (unifam. baixa, aberta)": (0.50, 0.50),
-    "Barrilete":                       (0.50, 0.75),
-    "Caixa D'água":                    (0.50, 0.75),
-    "Casa de Máquinas":                (0.50, 0.75),
-    "Piscinas":                        (0.50, 0.75),
-    "Quintais / Calçadas / Jardins":   (0.10, 0.30),
+    "Barrilete":                      (0.50, 0.75),
+    "Caixa D'água":                   (0.50, 0.75),
+    "Casa de Máquinas":               (0.50, 0.75),
+    "Piscinas":                       (0.50, 0.75),
+    "Quintais / Calçadas / Jardins":  (0.10, 0.30),
 }
 
 def main():
@@ -29,10 +27,12 @@ def main():
     if "projeto_info" not in st.session_state:
         st.title("📐 Orçamento Paramétrico de Edifícios Residenciais")
         st.markdown("## Informações do Projeto")
-        nome        = st.text_input("Nome do Projeto")
-        area_terreno= st.number_input("Área do Terreno (m²)", min_value=0.0, format="%.2f")
-        endereco    = st.text_area("Endereço")
-        num_pav     = st.number_input(
+        nome = st.text_input("Nome do Projeto")
+        area_terreno = st.number_input(
+            "Área do Terreno (m²)", min_value=0.0, format="%.2f"
+        )
+        endereco = st.text_area("Endereço")
+        num_pav = st.number_input(
             "Número de Pavimentos", min_value=1, max_value=50, value=1, step=1
         )
 
@@ -43,13 +43,11 @@ def main():
                 "endereco": endereco,
                 "num_pavimentos": int(num_pav),
             }
-            st.experimental_rerun()
+            st.rerun()  # Usar st.rerun em vez de st.experimental_rerun
 
     # === TELA DE ORÇAMENTO ===
     else:
         info = st.session_state.projeto_info
-
-        # Cabeçalho e info do projeto
         st.title("📐 Orçamento Paramétrico de Edifícios Residenciais")
         st.header("🔍 Informações do Projeto")
         st.write(f"**Nome:** {info['nome']}")
@@ -69,7 +67,7 @@ def main():
         st.sidebar.markdown("---")
         st.sidebar.markdown("© 2025 Sua Empresa")
 
-        # Entrada de dados dos pavimentos
+        # Dados dos Pavimentos
         n = info["num_pavimentos"]
         st.markdown("### 🏢 Dados dos Pavimentos")
 
@@ -86,7 +84,7 @@ def main():
 
         nomes, tipos, reps, coefs, areas, areas_total = [], [], [], [], [], []
 
-        for i in range(1, n+1):
+        for i in range(1, n + 1):
             c1, c2, c3, c4, c5, c6 = st.columns([1.5, 3, 0.6, 1, 1, 1])
 
             # 1) Nome do Pavimento
@@ -107,7 +105,7 @@ def main():
             else:
                 coef_i = c4.slider(
                     "", min_value=min_c, max_value=max_c,
-                    value=(min_c+max_c)/2, step=0.01,
+                    value=(min_c + max_c) / 2, step=0.01,
                     format="%.2f", key=f"coef_{i}"
                 )
 
@@ -128,7 +126,7 @@ def main():
             areas.append(area_i)
             areas_total.append(area_total_i)
 
-        # Somatório de área total (após inputs)
+        # Somatório de área total
         soma_area_total = sum(areas_total)
         st.markdown(f"**Somatório de Área Total:** {soma_area_total:,.2f} m²")
 
