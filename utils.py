@@ -229,4 +229,4 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     pdf.ln(card_h + 10)
     
     # Gera o PDF como uma string de bytes no formato latin-1
-    return pdf.output(dest='S').encode('latin-1')
+    return pdf.output(dest='S')
