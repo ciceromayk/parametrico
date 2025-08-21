@@ -62,7 +62,6 @@ def save_project(info):
     save_json(projs, JSON_PATH)
 def load_project(pid):
     project_data = next((p for p in load_json(JSON_PATH) if p["id"] == pid), None)
-    # Migração de dados para a nova estrutura de percentuais
     if project_data and 'etapas_percentuais' in project_data:
         etapas = project_data['etapas_percentuais']
         if etapas and isinstance(list(etapas.values())[0], (int, float)):
@@ -81,19 +80,19 @@ def handle_percentage_redistribution(session_key, constants_dict):
     current, previous = st.session_state[session_key], st.session_state[previous_key]
     if current == previous: return
     
-    st.session_state.redistribution_occured = True
     changed_item_key = next((k for k, v in current.items() if v['percentual'] != previous.get(k, {}).get('percentual')), None)
-
-    if changed_item_key:
-        delta = current[changed_item_key]['percentual'] - previous[changed_item_key]['percentual']
-        total_others = sum(v['percentual'] for k, v in previous.items() if k != changed_item_key)
-        if total_others > 0:
-            for item, values in current.items():
-                if item != changed_item_key:
-                    min_val, _, max_val = constants_dict[item]
-                    proportion = previous[item]['percentual'] / total_others
-                    new_percent = values['percentual'] - (delta * proportion)
-                    current[item]['percentual'] = max(min_val, min(new_percent, max_val))
+    if not changed_item_key: return
+    
+    st.session_state.redistribution_occured = True
+    delta = current[changed_item_key]['percentual'] - previous[changed_item_key]['percentual']
+    total_others = sum(v['percentual'] for k, v in previous.items() if k != changed_item_key)
+    if total_others > 0:
+        for item, values in current.items():
+            if item != changed_item_key:
+                min_val, _, max_val = constants_dict[item]
+                proportion = previous[item]['percentual'] / total_others
+                new_percent = values['percentual'] - (delta * proportion)
+                current[item]['percentual'] = max(min_val, min(new_percent, max_val))
     
     st.session_state[previous_key] = {k: v.copy() for k, v in current.items()}; st.rerun()
 
@@ -200,8 +199,7 @@ def page_budget_tool():
             obras_historicas = load_json(HISTORICO_PATH)
             obra_ref_selecionada = st.selectbox("Usar como Referência:", ["Nenhuma"] + [f"{o['id']} – {o['nome']}" for o in obras_historicas], index=0)
             
-            ref_percentuais = {}
-            ref_nome = None
+            ref_percentuais, ref_nome = {}, None
             if obra_ref_selecionada != "Nenhuma":
                 ref_id = int(obra_ref_selecionada.split("–")[0].strip())
                 ref_nome = obra_ref_selecionada.split("–")[1].strip()
@@ -223,7 +221,7 @@ def page_budget_tool():
                 current_percent = etapa_info['percentual']
                 percent_atual = c[3].slider("slider", min_val, max_val, float(current_percent), 0.5, key=f"slider_etapa_{etapa}", label_visibility="collapsed")
                 
-                if percent_atual != st.session_state.previous_etapas_percentuais.get(etapa, {}).get('percentual', -1):
+                if abs(percent_atual - st.session_state.previous_etapas_percentuais.get(etapa, {}).get('percentual', -1)) > 0.01:
                     st.session_state.etapas_percentuais[etapa]['fonte'] = "Manual"
                 st.session_state.etapas_percentuais[etapa]['percentual'] = percent_atual
                 
@@ -367,6 +365,8 @@ def main():
             save_project(st.session_state.projeto_info); st.sidebar.success("Projeto salvo com sucesso!")
         
         if st.sidebar.button("📚 Arquivar Custos no Histórico", use_container_width=True):
+            # Sincroniza os dados da sessão antes de arquivar
+            info['etapas_percentuais'] = st.session_state.etapas_percentuais
             save_to_historico(info)
         
         if st.sidebar.button("Mudar de Projeto", use_container_width=True):
