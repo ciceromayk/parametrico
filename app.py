@@ -175,20 +175,15 @@ def main():
 
     st.markdown("---")
 
-    # Novo bloco "Dados dos Pavimentos" com colunas proporcionais e dropdown de inclusão
+    # Novo bloco "Dados dos Pavimentos"
     st.markdown("#### 🏢 Dados dos Pavimentos")
-
-    # input de quantidade
     col_pav, _ = st.columns([1, 11])
     qtd = col_pav.number_input(
         "Nº de Pavimentos", min_value=1, max_value=50,
         value=1, step=1, key="num_pavimentos"
     )
 
-    # proporções para cada coluna
     col_widths = [3, 3, 1, 1.2, 1.5, 1.5, 1.5, 1]
-
-    # Cabeçalho
     headers = [
         "Nome", "Tipo", "Rep.", "Coef.",
         "Área (m²)", "Área Total Equivalente",
@@ -211,15 +206,9 @@ def main():
     registros = []
     for i in range(1, qtd + 1):
         c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(col_widths)
-
-        # 1. Nome
         nome_i = c1.text_input("", value=f"Pavimento {i}", key=f"nome_{i}")
-        # 2. Tipo
         tipo_i = c2.selectbox("", list(TIPOS_PAVIMENTO.keys()), key=f"tipo_{i}")
-        # 3. Rep.
-        rep_i = c3.number_input("", min_value=1, value=1, step=1, key=f"rep_{i}")
-
-        # 4. Coeficiente
+        rep_i  = c3.number_input("", min_value=1, value=1, step=1, key=f"rep_{i}")
         min_c, max_c = TIPOS_PAVIMENTO[tipo_i]
         if min_c == max_c:
             coef_i = min_c
@@ -234,40 +223,23 @@ def main():
                 step=0.01, format="%0.2f",
                 key=f"coef_{i}"
             )
-
-        # 5. Área (m²)
         area_i = c5.number_input(
             "", min_value=0.0, value=100.0,
             step=1.0, format="%0.2f",
             key=f"area_{i}"
         )
-
-        # cálculos
         total_i    = area_i * rep_i
         area_eq_i  = total_i * coef_i
-
-        # 6. Área Total Equivalente
         c6.markdown(
-            f"<div style='display:flex; align-items:center; justify-content:center; height:60px; font-weight:500;'>"
-            f"{fmt_br(area_eq_i)}</div>",
+            f"<div style='display:flex; align-items:center; justify-content:center; height:60px; font-weight:500;'>{fmt_br(area_eq_i)}</div>",
             unsafe_allow_html=True
         )
-
-        # 7. Área Construída
         c7.markdown(
-            f"<div style='display:flex; align-items:center; justify-content:center; height:60px; font-weight:500;'>"
-            f"{fmt_br(total_i)}</div>",
+            f"<div style='display:flex; align-items:center; justify-content:center; height:60px; font-weight:500;'>{fmt_br(total_i)}</div>",
             unsafe_allow_html=True
         )
-
-        # 8. Incluir?
-        incluir = c8.selectbox(
-            "", ["Sim", "Não"],
-            index=0,
-            key=f"constr_{i}"
-        )
+        incluir = c8.selectbox("", ["Sim", "Não"], index=0, key=f"constr_{i}")
         constr_i = (incluir == "Sim")
-
         registros.append({
             "nome":    nome_i,
             "tipo":    tipo_i,
@@ -278,13 +250,11 @@ def main():
             "constr":  constr_i
         })
 
-    # DataFrame e cálculos finais
     df = pd.DataFrame(registros)
     df["area_eq"]     = df["area"] * df["coef"] * df["rep"]
     df["area_constr"] = (df["area"] * df["rep"]).where(df["constr"], 0.0)
     df["custo"]       = df["area_eq"] * unit_cost
 
-    # prepara para exibição
     df_display = df.rename(columns={
         "nome":        "Nome",
         "tipo":        "Tipo",
@@ -300,7 +270,6 @@ def main():
         "Área Construída", "Custo (R$)"
     ]]
 
-    # formata colunas em BR
     for col in ["Área (m²)", "Área Total Equivalente", "Área Construída"]:
         df_display[col] = df_display[col].apply(fmt_br)
     df_display["Custo (R$)"] = df["custo"].apply(lambda v: f"R$ {fmt_br(v)}")
@@ -309,12 +278,11 @@ def main():
     styled = (
         df_display
         .style
-        .hide_index()
+        .hide(axis="index")
         .set_properties(**{"text-align": "center"})
     )
     st.dataframe(styled, use_container_width=True)
 
-    # botão de download do CSV
     csv = df_display.to_csv(index=False, sep=";").encode("utf-8")
     st.download_button(
         "⬇️ Baixar CSV",
@@ -323,7 +291,6 @@ def main():
         mime="text/csv"
     )
 
-    # resumo intermediário
     total_eq     = df["area_eq"].sum()
     total_constr = df["area_constr"].sum()
     rc1, rc2 = st.columns(2)
@@ -346,7 +313,6 @@ def main():
         </div>
     """, unsafe_allow_html=True)
 
-    # resumo final com 5 cards
     st.markdown("---")
     st.markdown("## 💰 Resumo Final")
 
@@ -357,7 +323,6 @@ def main():
     custo_med_unit = total_cust / info["num_unidades"] if info["num_unidades"] > 0 else 0.0
 
     sc1, sc2, sc3, sc4, sc5 = st.columns(5)
-    # 1) Área Total Equivalente
     sc1.markdown(f"""
         <div style="background-color:#31708f;
                     padding:15px;
@@ -367,7 +332,6 @@ def main():
           <div style="color:#fff;font-size:28px;font-weight:bold;">{fmt_br(total_eq)} m²</div>
         </div>
     """, unsafe_allow_html=True)
-    # 2) Custo Total do Projeto
     sc2.markdown(f"""
         <div style="background-color:#a94442;
                     padding:15px;
@@ -377,7 +341,6 @@ def main():
           <div style="color:#fff;font-size:28px;font-weight:bold;">R$ {fmt_br(total_cust)}</div>
         </div>
     """, unsafe_allow_html=True)
-    # 3) A.C / A.Privativa (adimensional)
     sc3.markdown(f"""
         <div style="background-color:#8a6d3b;
                     padding:15px;
@@ -387,7 +350,6 @@ def main():
           <div style="color:#fff;font-size:28px;font-weight:bold;">{razao_ac_pri:.2f}</div>
         </div>
     """, unsafe_allow_html=True)
-    # 4) Custo / m² A.C
     sc4.markdown(f"""
         <div style="background-color:#3c763d;
                     padding:15px;
@@ -397,7 +359,6 @@ def main():
           <div style="color:#fff;font-size:28px;font-weight:bold;">R$ {fmt_br(custo_por_ac)}</div>
         </div>
     """, unsafe_allow_html=True)
-    # 5) Custo Médio por Unidade
     sc5.markdown(f"""
         <div style="background-color:#337ab7;
                     padding:15px;
@@ -408,7 +369,6 @@ def main():
         </div>
     """, unsafe_allow_html=True)
 
-    # botão “Excluir Projeto”
     st.markdown("---")
     if st.button("🗑️ Excluir Projeto", help="Apaga o projeto atual e recarrega"):
         delete_project(info["id"])
