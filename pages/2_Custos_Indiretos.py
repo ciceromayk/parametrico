@@ -87,7 +87,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
 
     # SUGESTÃO DE DESIGN: Centralizar a tabela
     
-    _ , col_tabela, _ = st.columns([3, 3, 3])
+    _ , col_tabela, _ = st.columns([3, 2, 3])
     with col_tabela:
         grid_response = AgGrid(
             df,
