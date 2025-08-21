@@ -8,18 +8,16 @@ import locale
 try:
     locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 except locale.Error:
-    # Em alguns ambientes online, a localidade pt_BR pode não estar disponível.
-    # Usamos um fallback para evitar que o app quebre.
     try:
+        # Fallback para ambientes que não têm a localidade pt_BR instalada
         locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-        st.warning("Localidade 'pt_BR.UTF-8' não encontrada. Usando 'en_US.UTF-8' como alternativa.")
+        st.warning("Localidade 'pt_BR.UTF-8' não encontrada. Usando formatação de moeda americana.")
     except locale.Error:
-        st.error("Nenhuma localidade suportada encontrada. A formatação de moeda pode não funcionar.")
-
+        st.error("Nenhuma localidade suportada foi encontrada. A formatação de moeda pode falhar.")
 
 st.set_page_config(page_title="Custos Indiretos", layout="wide")
 
-# Nossa função aprimorada para o card do total
+# Função para o card do total. Ela fica aqui para não conflitar com a sua de utils.py
 def card_metric(label, value, icon_name="wallet2"):
     st.markdown(f"""
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -65,7 +63,10 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
     for item, (min_val, default_val, max_val) in DEFAULT_CUSTOS_INDIRETOS.items():
         percentual_atual = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val})['percentual']
         dados_tabela.append({
-            "Item": item, "Seu Projeto (%)": percentual_atual, "_min": min_val, "_max": max_val
+            "Item": item,
+            "Seu Projeto (%)": percentual_atual,
+            "_min": min_val, # Coluna oculta para o valor mínimo
+            "_max": max_val  # Coluna oculta para o valor máximo
         })
     df = pd.DataFrame(dados_tabela)
 
@@ -77,19 +78,23 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
             "Item": st.column_config.TextColumn(width="large", disabled=True),
             "Seu Projeto (%)": st.column_config.NumberColumn(
                 help="Clique para editar o valor percentual do custo.",
-                min_value=df["_min"].tolist(), max_value=df["_max"].tolist(),
-                step=0.1, format="%.1f %%"
+                min_value=df["_min"].tolist(),
+                max_value=df["_max"].tolist(),
+                step=0.1,
+                format="%.1f %%"
             )
         },
-        hide_index=True, use_container_width=True,
-        # Escondemos as colunas de min e max que são apenas para a configuração
+        hide_index=True,
+        use_container_width=True,
         column_order=[col for col in df.columns if not col.startswith('_')]
     )
     
     # PASSO 3: Usar os Dados Editados para Recalcular e Salvar
+    # Criamos a coluna de Custo (R$) dinamicamente após a edição
     edited_df["Custo (R$)"] = vgv_total * (edited_df["Seu Projeto (%)"] / 100)
     custo_indireto_calculado = edited_df["Custo (R$)"].sum()
 
+    # Atualiza o session_state com os novos valores para persistência
     for index, row in edited_df.iterrows():
         item_nome = row["Item"]
         novo_percentual = row["Seu Projeto (%)"]
