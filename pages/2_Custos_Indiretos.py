@@ -53,42 +53,41 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         else:
             st.session_state.custos_indiretos_percentuais = {item: custos_salvos.get(item, {"percentual": vals[1], "fonte": "Manual"}) for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
 
-    # PASSO 1: Preparar os Dados para o AgGrid
+    # PASSO 1: Preparar os Dados (Renomeando a coluna)
     dados_tabela = []
     for item, (min_val, default_val, max_val) in DEFAULT_CUSTOS_INDIRETOS.items():
         percentual_atual = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val})['percentual']
         custo_calculado = vgv_total * (percentual_atual / 100)
         dados_tabela.append({
             "Item": item,
-            "Seu Projeto (%)": percentual_atual,
+            "%": percentual_atual, # <-- Coluna renomeada aqui
             "Custo (R$)": custo_calculado,
         })
     df = pd.DataFrame(dados_tabela)
 
-    # PASSO 2: Configurar o AgGrid
+    # PASSO 2: Configurar o AgGrid com as novas regras
     st.write("### Edite os percentuais de cada custo abaixo:")
     
     gb = GridOptionsBuilder.from_dataframe(df)
     
-    # Código JavaScript para formatar a moeda no padrão brasileiro
     jscode_formatador_moeda = JsCode("""
         function(params) {
-            if (params.value === null || params.value === undefined) {
-                return '';
-            }
+            if (params.value === null || params.value === undefined) { return ''; }
             return 'R$ ' + params.value.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         }
     """)
 
-    gb.configure_column("Item", width=250)
-    gb.configure_column("Seu Projeto (%)", editable=True, width=100, type=["numericColumn", "numberColumnFilter", "customNumericFormat"], precision=1)
-    gb.configure_column("Custo (R$)", valueFormatter=jscode_formatador_moeda, width=150, type=["numericColumn", "numberColumnFilter"])
-    
-    gb.configure_default_column(resizable=True, filterable=True, sortable=True)
+    # --- ALTERAÇÕES AQUI ---
+    # Definimos larguras fixas e ajustamos a coluna de percentual
+    gb.configure_column("Item", headerName="Item", width=350, resizable=False)
+    gb.configure_column("%", headerName="%", editable=True, width=100, resizable=False,
+                        type=["numericColumn", "numberColumnFilter", "customNumericFormat"],
+                        precision=2) # <-- Precisão de 2 casas decimais
+    gb.configure_column("Custo (R$)", headerName="Custo (R$)", valueFormatter=jscode_formatador_moeda, width=200, resizable=False,
+                        type=["numericColumn", "numberColumnFilter"])
     
     gridOptions = gb.build()
 
-    # Exibimos a tabela AgGrid
     grid_response = AgGrid(
         df,
         gridOptions=gridOptions,
@@ -97,22 +96,20 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         update_mode='MODEL_CHANGED',
         allow_unsafe_jscode=True,
         try_convert_numeric_dtypes=True,
-        # Tema visual para a tabela
-        theme='streamlit' 
+        theme='streamlit'
     )
     
-    # PASSO 3: Usar os Dados Editados
+    # PASSO 3: Usar os Dados Editados (Ajuste no nome da coluna)
     edited_df = grid_response['data']
     
-    # Recalculamos o custo e o total com base nos dados que o usuário pode ter alterado
-    # Usamos pd.to_numeric para garantir que a coluna seja numérica antes de calcular
-    edited_df["Custo (R$)"] = vgv_total * (pd.to_numeric(edited_df["Seu Projeto (%)"], errors='coerce').fillna(0) / 100)
+    # Usamos o novo nome da coluna "%" para o cálculo
+    edited_df["Custo (R$)"] = vgv_total * (pd.to_numeric(edited_df["%"], errors='coerce').fillna(0) / 100)
     custo_indireto_calculado = edited_df["Custo (R$)"].sum()
 
-    # Atualizamos o session_state para guardar as alterações
+    # Atualizamos o session_state com o novo nome da coluna
     for index, row in edited_df.iterrows():
         item_nome = row["Item"]
-        novo_percentual = row["Seu Projeto (%)"]
+        novo_percentual = row["%"]
         st.session_state.custos_indiretos_percentuais[item_nome]['percentual'] = novo_percentual
 
     st.divider()
