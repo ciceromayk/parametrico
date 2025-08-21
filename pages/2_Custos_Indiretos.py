@@ -76,7 +76,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         }
     """)
 
-    gb.configure_column("Item", headerName="Item", width=16800, resizable=True)
+    gb.configure_column("Item", headerName="Item", width=1000, resizable=True)
     gb.configure_column("%", headerName="%", editable=True, width=100, resizable=False,
                         type=["numericColumn", "numberColumnFilter", "customNumericFormat"],
                         precision=2)
@@ -118,7 +118,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
     
     # Usamos colunas para centralizar o card, alinhando-o com a tabela
     # A proporção [2, 1, 2] significa: 2 partes vazias, 1 parte para o card, 2 partes vazias
-    _, col_metrica, _ = st.columns([2, 1, 2])
+    _, col_metrica, _ = st.columns([6, 1, 6])
     
     with col_metrica:
         card_metric(
