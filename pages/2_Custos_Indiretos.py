@@ -19,11 +19,11 @@ st.markdown("""
 <style>
     /* Aumenta a fonte do cabeçalho da tabela */
     .ag-header-cell-text {
-        font-size: 18px !important;
+        font-size: 22px !important;
     }
     /* Aumenta a fonte das células da tabela */
     .ag-cell {
-        font-size: 18px !important;
+        font-size: 22px !important;
     }
 </style>
 """, unsafe_allow_html=True)
