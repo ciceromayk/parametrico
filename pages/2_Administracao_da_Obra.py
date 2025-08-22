@@ -74,7 +74,7 @@ if 'duracao_obra' not in st.session_state:
 with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
     st.subheader("Configuração dos Custos Indiretos da Obra")
 
-    col_slider, col_spacer = st.columns([0.6, 0.4])
+    col_slider, col_spacer = st.columns([1, 0.4])
     with col_slider:
         st.session_state.duracao_obra = st.slider(
             "Duração da Obra (meses):",
