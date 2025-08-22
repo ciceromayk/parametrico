@@ -226,9 +226,8 @@ def generate_ai_analysis():
 # --- DEFINIÇÃO DO DIALOG (POP-UP) ---
 @st.dialog("Análise de Viabilidade com I.A.")
 def ai_analysis_dialog():
-    if "ai_analysis" in st.session_state:
+    if "ai_analysis" in st.session_state and st.session_state.ai_analysis:
         # Divide o texto em seções baseadas nos cabeçalhos numerados
-        # Adapta a lógica para o novo formato do prompt
         sections = st.session_state.ai_analysis.split('\n\n')
         
         # Itera sobre as seções e formata cada uma individualmente
@@ -252,7 +251,7 @@ def api_key_dialog():
     
     with st.form("api_key_form"):
         api_key = st.text_input("Chave da API", type="password")
-        if st.form_submit_button("Salvar e Gerar Análise"):
+        if st.form_submit_button("Salvar Chave e Continuar"):
             if api_key:
                 st.session_state.gemini_api_key = api_key
                 st.rerun()
