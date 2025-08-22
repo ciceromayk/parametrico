@@ -191,12 +191,10 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     # Gerar o gráfico de pizza como imagem base64
     custos_labels = ['Custo Direto', 'Custo Indireto', 'Custo do Terreno']
     custos_valores = [custo_direto_total, custo_indireto_calculado, custo_terreno_total]
-    # Usando uma paleta de cores mais distintas e agradável
-    custos_cores = ['#2ca02c', '#1f77b4', '#ff7f0e']
-
+    custos_cores = ['#2ca02c', '#1f77b4', '#ff7f0e'] # Novas cores mais distintas
+    
     fig, ax = plt.subplots(figsize=(10, 6))
     
-    # Função para formatar as etiquetas com valor e percentual
     def format_labels(pct, all_values):
         absolute_value = pct / 100. * sum(all_values)
         if absolute_value == 0:
@@ -216,7 +214,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     )
 
     # Criar a legenda separadamente para melhor controle de posição e estilo
-    leg = ax.legend(wedges, [f"{l} ({format_labels(p, custos_valores)})" for l, p in zip(custos_labels, autotexts)],
+    leg = ax.legend(wedges, [f"{l} ({format_labels(p.get_text(), custos_valores)})" for l, p in zip(custos_labels, autotexts)],
                     title="Tipos de Custo",
                     loc="center",
                     bbox_to_anchor=(0.5, -0.1),
