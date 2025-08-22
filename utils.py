@@ -4,9 +4,7 @@ import pandas as pd
 import json
 import os
 from datetime import datetime
-# REMOVIDO: from fpdf import FPDF
-# ADICIONADO:
-from weasyprint import HTML, CSS
+from weasyprint import HTML
 
 # --- CONSTANTES GLOBAIS e outras funções ---
 # (Toda a parte inicial do seu arquivo, até a função render_sidebar, continua exatamente igual)
@@ -158,6 +156,8 @@ def render_sidebar(form_key="edit_form_sidebar"):
             for key in keys_to_delete:
                 if key in st.session_state: del st.session_state[key]
             st.switch_page("Início.py")
+
+# --- NOVA FUNÇÃO DE GERAÇÃO DE PDF ---
 def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
                         custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total):
     
@@ -176,8 +176,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     <head>
         <meta charset="UTF-8">
         <style>
-            /* REMOVEMOS O @import do Google Fonts */
-            body {{ font-family: sans-serif; color: #333; }} /* Usamos uma fonte padrão */
+            body {{ font-family: sans-serif; color: #333; }}
             h1 {{ text-align: center; color: #1a5276; }}
             h2 {{ color: #1f618d; border-bottom: 2px solid #aed6f1; padding-bottom: 5px; margin-top: 30px; }}
             .container {{ display: flex; justify-content: space-between; gap: 15px; margin-bottom: 20px; }}
