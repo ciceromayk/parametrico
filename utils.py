@@ -12,9 +12,8 @@ def fmt_br(valor):
     """
     Formata um valor numérico para a moeda brasileira (R$) de forma independente do locale.
     """
-    if pd.isna(valor):
+    if pd.isna(valor) or valor is None:
         return "0,00"
-    # Formata para duas casas decimais, adiciona separador de milhar e troca , por . e vice-versa
     s = f"{valor:,.2f}"
     return s.replace(",", "X").replace(".", ",").replace("X", ".")
 
@@ -32,7 +31,7 @@ TIPOS_PAVIMENTO = {
 DEFAULT_PAVIMENTO = {"nome": "Pavimento Tipo", "tipo": "Área Privativa (Autônoma)", "rep": 1, "coef": 1.00, "area": 100.0, "constr": True}
 
 ETAPAS_OBRA = {
-    "Serviços Preliminares e Fundações":        (7.0, 8.0, 9.0),
+    "Serviços Prelimimnares e Fundações":        (7.0, 8.0, 9.0),
     "Estrutura (Supraestrutura)":               (14.0, 16.0, 22.0),
     "Vedações (Alvenaria)":                     (8.0, 10.0, 15.0),
     "Cobertura e Impermeabilização":            (4.0, 5.0, 8.0),
@@ -67,7 +66,7 @@ def init_storage(path):
     if not os.path.exists(path):
         with open(path, "w", encoding="utf-8") as f: json.dump([], f, ensure_ascii=False, indent=4)
 def load_json(path):
-    init_storage(path); 
+    init_storage(path);
     with open(path, "r", encoding="utf-8") as f: return json.load(f)
 def save_json(data, path):
     with open(path, "w", encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=4)
@@ -130,16 +129,11 @@ def handle_percentage_redistribution(session_key, constants_dict):
 def render_sidebar(form_key):
     st.sidebar.title("Estudo de Viabilidade")
     st.sidebar.divider()
-    
-    # Links de navegação para as páginas
     st.sidebar.page_link("Início.py", label="Início", icon="🏠")
     st.sidebar.page_link("pages/1_Custos_Diretos.py", label="Custos Diretos", icon="🏗️")
     st.sidebar.page_link("pages/2_Custos_Indiretos.py", label="Custos Indiretos", icon="💸")
     st.sidebar.page_link("pages/3_Resultados_e_Indicadores.py", label="Resultados e Indicadores", icon="📈")
-
     st.sidebar.divider()
-
-    # Seção para carregar/editar projetos
     if "projeto_info" in st.session_state:
         info = st.session_state.projeto_info
         st.sidebar.subheader(f"Projeto: {info['nome']}")
@@ -175,113 +169,170 @@ def render_sidebar(form_key):
                 if key in st.session_state: del st.session_state[key]
             st.switch_page("Início.py")
 
-# --- NOVA FUNÇÃO DE GERAÇÃO DE PDF ---
 def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
-                       custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total, custos_config):
-    
-    # Função auxiliar para criar um card em HTML
+                       custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total,
+                       custos_config, custos_indiretos_percentuais):
+
     def create_html_card(title, value, color):
         return f"""
-        <div class="card" style="
-            flex: 1;
-            background-color: {color};
-            color: white;
-            border-radius: 8px;
-            padding: 10px;
-            text-align: center;
-            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-            box-sizing: border-box;
-            word-wrap: break-word; /* Prevents overflow */
-            min-width: 150px; /* Adjust based on your design */
-        ">
-            <div class="card-title" style="font-size: 14px; margin-bottom: 5px; font-weight: bold;">{title}</div>
-            <div class="card-value" style="font-size: 18px; font-weight: bold;">{value}</div>
-        </div>
+        <td style="background-color: {color}; color: white; border-radius: 8px; padding: 15px; text-align: center; width: 25%;">
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">{title}</div>
+            <div style="font-size: 22px; font-weight: bold;">{value}</div>
+        </td>
         """
 
-    # Monta o corpo do HTML
-    relacao_ac_priv = area_construida_total / info.get('area_privativa', 0) if info.get('area_privativa', 0) > 0 else 0
-    
+    relacao_ac_priv = area_construida_total / info.get('area_privativa', 1) if info.get('area_privativa', 1) > 0 else 0
+
+    # Construir a tabela de custos indiretos
+    tabela_custos_indiretos_html = ""
+    for item, values in custos_indiretos_percentuais.items():
+        percentual = values.get('percentual', 0)
+        custo = vgv_total * (float(percentual) / 100)
+        tabela_custos_indiretos_html += f"""
+        <tr>
+            <td>{item}</td>
+            <td style="text-align: right;">{percentual:.2f}%</td>
+            <td style="text-align: right;">R$ {fmt_br(custo)}</td>
+        </tr>
+        """
+
     html_string = f"""
     <html>
     <head>
         <meta charset="UTF-8">
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
         <style>
-            body {{ font-family: sans-serif; color: #333; }}
-            h1 {{ text-align: center; color: #1a5276; }}
-            h2 {{ color: #1f618d; border-bottom: 2px solid #aed6f1; padding-bottom: 5px; margin-top: 30px; }}
-            .container {{
+            @page {{
+                size: A4;
+                margin: 1.5cm;
+                @top-center {{
+                    content: "Relatório de Viabilidade - {info.get('nome', 'N/A')}";
+                    font-family: 'Roboto', sans-serif;
+                    font-size: 10px;
+                    color: #888;
+                }}
+                @bottom-right {{
+                    content: "Página " counter(page) " de " counter(pages);
+                    font-family: 'Roboto', sans-serif;
+                    font-size: 10px;
+                    color: #888;
+                }}
+            }}
+            body {{
+                font-family: 'Roboto', sans-serif;
+                color: #333;
+            }}
+            .cover-page {{
+                page-break-after: always;
                 display: flex;
-                flex-wrap: wrap;
-                justify-content: space-between;
-                gap: 10px;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 100%;
+                text-align: center;
+            }}
+            .cover-page h1 {{
+                font-size: 36px;
+                color: #1a5276;
                 margin-bottom: 20px;
             }}
-            .card {{
-                flex: 1 1 23%; /* Flex-grow, flex-shrink, flex-basis for responsive layout */
-                min-width: 150px;
-                color: white;
-                border-radius: 8px;
-                padding: 15px;
-                text-align: center;
-                box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-                box-sizing: border-box;
+            .cover-page h2 {{
+                font-size: 28px;
+                color: #1f618d;
+                margin-bottom: 40px;
             }}
-            .card-title {{ font-size: 14px; margin-bottom: 5px; font-weight: bold; }}
-            .card-value {{ font-size: 22px; font-weight: bold; }}
-            footer {{ position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 12px; color: #888; }}
+            .cover-page p {{
+                font-size: 16px;
+                color: #555;
+            }}
+            h2.section-title {{
+                color: #1f618d;
+                border-bottom: 2px solid #aed6f1;
+                padding-bottom: 5px;
+                margin-top: 30px;
+                margin-bottom: 20px;
+            }}
+            table.card-container {{
+                width: 100%;
+                border-spacing: 10px;
+                margin-bottom: 20px;
+            }}
+            table.data-table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+            }}
+            table.data-table th, table.data-table td {{
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }}
+            table.data-table th {{
+                background-color: #f2f2f2;
+                font-weight: bold;
+            }}
         </style>
     </head>
     <body>
-        <h1>Relatório de Viabilidade de Empreendimento</h1>
-        <h2>Projeto: {info.get('nome', 'N/A')}</h2>
-
-        <h2>Dados de Área e Venda</h2>
-        <div class="container">
-            {create_html_card("Área Privativa", f"{fmt_br(info.get('area_privativa', 0))} m²", "#1f77b4")}
-            {create_html_card("Área Construída", f"{fmt_br(area_construida_total)} m²", "#ff7f0e")}
-            {create_html_card("Preço Venda / m²", f"R$ {fmt_br(custos_config.get('preco_medio_venda_m2', 0))}", "#2ca02c")}
-            {create_html_card("Relação AC/AP", f"{relacao_ac_priv:.2f}", "#d62728")}
+        <div class="cover-page">
+            <h1>Relatório de Viabilidade de Empreendimento</h1>
+            <h2>{info.get('nome', 'N/A')}</h2>
+            <p>Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
         </div>
 
-        <h2>Resultados Financeiros</h2>
-        <div class="container">
-            {create_html_card("VGV Total", f"R$ {fmt_br(vgv_total)}", "#00829d")}
-            {create_html_card("Custo Total", f"R$ {fmt_br(valor_total_despesas)}", "#6a42c1")}
-            {create_html_card("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}", "#3c763d")}
-            {create_html_card("Margem de Lucro", f"{lucratividade_percentual:.2f}%", "#a94442")}
-        </div>
+        <h2 class="section-title">Dados de Área e Venda</h2>
+        <table class="card-container">
+            <tr>
+                {create_html_card("Área Privativa", f"{fmt_br(info.get('area_privativa', 0))} m²", "#1f77b4")}
+                {create_html_card("Área Construída", f"{fmt_br(area_construida_total)} m²", "#ff7f0e")}
+                {create_html_card("Preço Venda / m²", f"R$ {fmt_br(custos_config.get('preco_medio_venda_m2', 0))}", "#2ca02c")}
+                {create_html_card("Relação AC/AP", f"{relacao_ac_priv:.2f}", "#d62728")}
+            </tr>
+        </table>
 
-        <h2>Composição do Custo Total</h2>
-        <div class="container">
-    """
-    if valor_total_despesas > 0:
-        p_direto = (custo_direto_total / valor_total_despesas * 100)
-        p_indireto = (custo_indireto_calculado / valor_total_despesas * 100)
-        p_terreno = (custo_terreno_total / valor_total_despesas * 100)
-        html_string += f"""
-            {create_html_card(f"Custo Direto ({p_direto:.2f}%)", f"R$ {fmt_br(custo_direto_total)}", "#31708f")}
-            {create_html_card(f"Custo Indireto ({p_indireto:.2f}%)", f"R$ {fmt_br(custo_indireto_calculado)}", "#8a6d3b")}
-            {create_html_card(f"Custo do Terreno ({p_terreno:.2f}%)", f"R$ {fmt_br(custo_terreno_total)}", "#6f42c1")}
-        """
-    html_string += """
-        </div>
+        <h2 class="section-title">Resultados Financeiros</h2>
+        <table class="card-container">
+             <tr>
+                {create_html_card("VGV Total", f"R$ {fmt_br(vgv_total)}", "#00829d")}
+                {create_html_card("Custo Total", f"R$ {fmt_br(valor_total_despesas)}", "#6a42c1")}
+                {create_html_card("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}", "#3c763d")}
+                {create_html_card("Margem de Lucro", f"{lucratividade_percentual:.2f}%", "#a94442")}
+            </tr>
+        </table>
 
-        <h2>Indicadores por Área Construída</h2>
-        <div class="container">
-    """
-    if area_construida_total > 0:
-        html_string += f"""
-            {create_html_card("Terreno / Custo Total", f"{(custo_terreno_total / valor_total_despesas * 100 if valor_total_despesas > 0 else 0):.2f}%", "#fd7e14")}
-            {create_html_card("Custo Direto / m²", f"R$ {fmt_br(custo_direto_total / area_construida_total if area_construida_total > 0 else 0)}", "#20c997")}
-            {create_html_card("Custo Indireto / m²", f"R$ {fmt_br(custo_indireto_calculado / area_construida_total if area_construida_total > 0 else 0)}", "#31708f")}
-            {create_html_card("Custo Total / m²", f"R$ {fmt_br(valor_total_despesas / area_construida_total if area_construida_total > 0 else 0)}", "#8a6d3b")}
-        """
-    html_string += f"""
-        </div>
-        <footer>Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}</footer>
+        <h2 class="section-title">Composição do Custo Total</h2>
+        <table class="card-container">
+            <tr>
+                {create_html_card(f"Custo Direto ({(custo_direto_total / valor_total_despesas * 100) if valor_total_despesas > 0 else 0:.2f}%)", f"R$ {fmt_br(custo_direto_total)}", "#31708f")}
+                {create_html_card(f"Custo Indireto ({(custo_indireto_calculado / valor_total_despesas * 100) if valor_total_despesas > 0 else 0:.2f}%)", f"R$ {fmt_br(custo_indireto_calculado)}", "#8a6d3b")}
+                {create_html_card(f"Custo do Terreno ({(custo_terreno_total / valor_total_despesas * 100) if valor_total_despesas > 0 else 0:.2f}%)", f"R$ {fmt_br(custo_terreno_total)}", "#6f42c1")}
+            </tr>
+        </table>
+
+        <h2 class="section-title">Indicadores por Área Construída</h2>
+        <table class="card-container">
+            <tr>
+                {create_html_card("Terreno / Custo Total", f"{(custo_terreno_total / valor_total_despesas * 100) if valor_total_despesas > 0 else 0:.2f}%", "#fd7e14")}
+                {create_html_card("Custo Direto / m²", f"R$ {fmt_br(custo_direto_total / area_construida_total if area_construida_total > 0 else 0)}", "#20c997")}
+                {create_html_card("Custo Indireto / m²", f"R$ {fmt_br(custo_indireto_calculado / area_construida_total if area_construida_total > 0 else 0)}", "#31708f")}
+                {create_html_card("Custo Total / m²", f"R$ {fmt_br(valor_total_despesas / area_construida_total if area_construida_total > 0 else 0)}", "#8a6d3b")}
+            </tr>
+        </table>
+
+        <h2 class="section-title">Detalhamento dos Custos Indiretos</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th style="text-align: right;">Percentual (%)</th>
+                    <th style="text-align: right;">Custo (R$)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {tabela_custos_indiretos_html}
+            </tbody>
+        </table>
     </body>
     </html>
     """
     return HTML(string=html_string).write_pdf()
-
