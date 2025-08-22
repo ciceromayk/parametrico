@@ -2,7 +2,13 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from utils import *
+from utils import (
+    fmt_br, render_metric_card, render_sidebar, handle_percentage_redistribution,
+    list_projects, save_project, load_project, delete_project,
+    DEFAULT_PAVIMENTO, ETAPAS_OBRA, DEFAULT_CUSTOS_INDIRETOS, DEFAULT_CUSTOS_INDIRETOS_FIXOS,
+    DEFAULT_CUSTOS_INDIRETOS_OBRA, JSON_PATH, HISTORICO_DIRETO_PATH, HISTORICO_INDIRETO_PATH,
+    load_json, save_to_historico
+)
 
 st.set_page_config(page_title="Custos Diretos", layout="wide")
 
