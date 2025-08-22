@@ -7,7 +7,7 @@ from utils import (
     list_projects, save_project, load_project, delete_project,
     DEFAULT_PAVIMENTO, ETAPAS_OBRA, DEFAULT_CUSTOS_INDIRETOS, DEFAULT_CUSTOS_INDIRETOS_FIXOS,
     DEFAULT_CUSTOS_INDIRETOS_OBRA, JSON_PATH, HISTORICO_DIRETO_PATH, HISTORICO_INDIRETO_PATH,
-    load_json, save_to_historico
+    load_json, save_to_historico, TIPOS_PAVIMENTO
 )
 
 st.set_page_config(page_title="Custos Diretos", layout="wide")
