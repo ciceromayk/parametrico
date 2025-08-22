@@ -176,8 +176,8 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     def create_html_card(title, value, color):
         return f"""
         <td style="background-color: {color}; color: white; border-radius: 8px; padding: 15px; text-align: center; width: 25%;">
-            <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">{title}</div>
-            <div style="font-size: 18px; font-weight: bold;">{value}</div>
+            <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">{title}</div>
+            <div style="font-size: 16px; font-weight: bold;">{value}</div>
         </td>
         """
     
