@@ -76,10 +76,11 @@ st.divider()
 # Botão para gerar e baixar o relatório em PDF
 if st.button("Gerar e Baixar Relatório PDF", type="primary"):
     with st.spinner("Gerando seu relatório..."):
+        # Adiciona pavimentos_df à lista de argumentos da função
         pdf_data = generate_pdf_report(
             info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
             custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total,
-            custos_config, custos_indiretos_percentuais
+            custos_config, custos_indiretos_percentuais, pavimentos_df
         )
         st.download_button(
             label="Download Concluído! Clique para baixar novamente.",
