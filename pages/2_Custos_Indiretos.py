@@ -14,6 +14,21 @@ st.set_page_config(
     page_icon="💸"
 )
 
+# Injeção de CSS para aumentar o tamanho da fonte da tabela AgGrid
+st.markdown("""
+<style>
+    /* Aumenta a fonte do cabeçalho da tabela */
+    .ag-header-cell-text {
+        font-size: 18px !important;
+    }
+    /* Aumenta a fonte das células da tabela */
+    .ag-cell {
+        font-size: 18px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
 def card_metric_pro(label, value, delta=None, icon_name="cash-coin"):
     """
     Cartão de métrica profissional com design moderno
@@ -132,15 +147,31 @@ with st.expander("Análise Detalhada de Custos Indiretos", expanded=True):
         )
         
     with col2:
-        st.write("### Participação no VGV")
-        df_sorted = df.sort_values(by='Percentual (%)', ascending=False)
-        fig_pie = px.pie(df_sorted, values='Percentual (%)', names='Item',
-                         title='Composição dos Custos Indiretos')
-        fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-        fig_pie.update_layout(showlegend=False, margin=dict(l=20, r=20, t=40, b=20),
-                              height=350)
-        st.plotly_chart(fig_pie, use_container_width=True)
+        st.write("### Resumo Financeiro")
+        # Adiciona um espaço para alinhamento
+        st.write("<br>", unsafe_allow_html=True)
+        st.write("<br>", unsafe_allow_html=True)
 
+        card_metric_pro(
+            label="VGV Total",
+            value=f"R$ {fmt_br(vgv_total)}",
+            icon_name="building-fill-up"
+        )
+        st.write("<br>", unsafe_allow_html=True)
+        
+        card_metric_pro(
+            label="Custo Indireto Total",
+            value=f"R$ {fmt_br(custo_indireto_calculado)}",
+            icon_name="cash-coin"
+        )
+        st.write("<br>", unsafe_allow_html=True)
+        
+        card_metric_pro(
+            label="% do Custo Indireto",
+            value=f"{((custo_indireto_calculado / vgv_total) * 100):.2f}%",
+            icon_name="percent"
+        )
+        
     # Usar os Dados Editados
     edited_df = grid_response['data']
     
@@ -153,28 +184,6 @@ with st.expander("Análise Detalhada de Custos Indiretos", expanded=True):
         novo_percentual = row["Percentual (%)"]
         st.session_state.custos_indiretos_percentuais[item_nome]['percentual'] = novo_percentual
 
-    # Adicionar espaçamento vertical
+    # Adicionar espaçamento vertical para separar a área de edição
     st.write("<br>", unsafe_allow_html=True)
-
-    st.subheader("Resumo Financeiro")
-    col3, col4, col5 = st.columns([1, 1, 1])
-    
-    with col3:
-        card_metric_pro(
-            label="VGV Total",
-            value=f"R$ {fmt_br(vgv_total)}",
-            icon_name="building-fill-up"
-        )
-    with col4:
-        card_metric_pro(
-            label="Custo Indireto Total",
-            value=f"R$ {fmt_br(custo_indireto_calculado)}",
-            icon_name="cash-coin"
-        )
-    with col5:
-        card_metric_pro(
-            label="% do Custo Indireto",
-            value=f"{((custo_indireto_calculado / vgv_total) * 100):.2f}%",
-            icon_name="percent"
-        )
 
