@@ -460,7 +460,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
         </table>
 
         <div class="page-break"></div>
-        <h2 class="section-title">Detalhamento dos Custos Indiretos</h2>
+        <h2 class="section-title">Detalhamento dos Custos Indiretos</th>
         <table class="data-table">
             <thead>
                 <tr>
