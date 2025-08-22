@@ -63,21 +63,8 @@ DEFAULT_CUSTOS_INDIRETOS = {
     "Preparação do Terreno":        (0.2, 0.33, 1.0),
     "Financiamento Bancário":       (1.0, 1.9, 3.0),
 }
-
-# Novo dicionário para custos indiretos da obra, por mês
-DEFAULT_CUSTOS_INDIRETOS_OBRA = {
-    "Administração de Obra (Engenheiro/Arquiteto)": 15000.0,
-    "Mestre de Obras e Encarregados": 8000.0,
-    "Aluguel de Equipamentos (andaimes, betoneira, etc.)": 5000.0,
-    "Consumo de Energia": 1000.0,
-    "Consumo de Água": 500.0,
-    "Telefone e Internet": 300.0,
-    "Seguros e Licenças de Canteiro": 1200.0,
-    "Transporte de Materiais e Pessoas": 2500.0,
-    "Despesas de Escritório e Apoio": 800.0,
-}
-
 DEFAULT_CUSTOS_INDIRETOS_FIXOS = {}
+DEFAULT_CUSTOS_INDIRETOS_OBRA = {}
 
 def init_storage(path):
     if not os.path.exists(path):
@@ -185,8 +172,8 @@ def render_sidebar(form_key):
 
 def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
                        custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total,
-                       custos_config, custos_indiretos_percentuais, pavimentos_df):
-
+                       custos_config, custos_indiretos_percentuais, pavimentos_df, custo_indireto_obra_total):
+    
     def create_html_card(title, value, color):
         return f"""
         <td style="background-color: {color}; color: white; border-radius: 8px; padding: 15px; text-align: center; width: 25%;">
@@ -198,7 +185,8 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     # Gerar os dados para a seção de Composição do Custo Total
     composicao_custos = [
         ("Custo Direto", custo_direto_total, '#2ca02c'),
-        ("Custo Indireto", custo_indireto_calculado, '#1f77b4'),
+        ("Custo Indireto (Venda)", custo_indireto_calculado, '#1f77b4'),
+        ("Custo Indireto (Obra)", custo_indireto_obra_total, '#6f42c1'),
         ("Custo do Terreno", custo_terreno_total, '#ff7f0e')
     ]
     
@@ -208,7 +196,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     for label, valor, cor in composicao_custos:
         percentual = (valor / total_custos_composicao) * 100 if total_custos_composicao > 0 else 0
         tabela_composicao_html += f"""
-        <td style="background-color: {cor}; color: white; border-radius: 8px; padding: 15px; text-align: center; width: 33%;">
+        <td style="background-color: {cor}; color: white; border-radius: 8px; padding: 15px; text-align: center; width: 25%;">
             <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">{label} ({percentual:.1f}%)</div>
             <div style="font-size: 18px; font-weight: bold;">R$ {fmt_br(valor)}</div>
         </td>
@@ -377,10 +365,10 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             table.data-table th {{
                 background-color: #f2f2f2;
                 font-weight: bold;
-                font-size: 11px;
+                font-size: 14px;
             }}
             table.data-table td {{
-                font-size: 10px;
+                font-size: 12px;
             }}
             table.data-table tbody tr:nth-child(odd) {{
                 background-color: #f9f9f9;
@@ -420,7 +408,10 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
         <h2 class="section-title">Composição do Custo Total</h2>
         <table class="card-container">
             <tr>
-                {tabela_composicao_html}
+                {create_html_card(f"Custo Direto ({custo_direto_total / valor_total_despesas * 100 if valor_total_despesas > 0 else 0:.2f}%)", f"R$ {fmt_br(custo_direto_total)}", "#31708f")}
+                {create_html_card(f"Indiretos Venda ({custo_indireto_calculado / valor_total_despesas * 100 if valor_total_despesas > 0 else 0:.2f}%)", f"R$ {fmt_br(custo_indireto_calculado)}", "#8a6d3b")}
+                {create_html_card(f"Indiretos Obra ({custo_indireto_obra_total / valor_total_despesas * 100 if valor_total_despesas > 0 else 0:.2f}%)", f"R$ {fmt_br(custo_indireto_obra_total)}", "#6f42c1")}
+                {create_html_card(f"Custo do Terreno ({custo_terreno_total / valor_total_despesas * 100 if valor_total_despesas > 0 else 0:.2f}%)", f"R$ {fmt_br(custo_terreno_total)}", "#ff7f0e")}
             </tr>
         </table>
 
@@ -459,7 +450,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
         </table>
 
         <div class="page-break"></div>
-        <h2 class="section-title">Detalhamento dos Custos Indiretos</h2>
+        <h2 class="section-title">Detalhamento dos Custos Indiretos</th>
         <table class="data-table">
             <thead>
                 <tr>
