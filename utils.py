@@ -312,7 +312,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
                 @top-center {{
                     content: "Relatório de Viabilidade - {info.get('nome', 'N/A')}";
                     font-family: 'Roboto', sans-serif;
-                    font-size: 10px;
+                    font-size: 14px;
                     color: #888;
                 }}
                 @bottom-right {{
@@ -433,9 +433,9 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
                     <th style="width: 32.50%;">Tipo</th>
                     <th style="width: 4%; text-align: center;">Rep.</th>
                     <th style="width: 4%; text-align: right;">Coef.</th>
-                    <th style="width: 20%; text-align: right;">Área (m²)</th>
-                    <th style="width: 20%; text-align: right;">Área Eq. Total (m²)</th>
-                    <th style="width: 20%; text-align: right;">Área Constr. (m²)</th>
+                    <th style="width: 14.75%; text-align: right;">Área (m²)</th>
+                    <th style="width: 18.00%; text-align: right;">Área Eq. Total (m²)</th>
+                    <th style="width: 16.75%; text-align: right;">Área Constr. (m²)</th>
                 </tr>
             </thead>
             <tbody>
