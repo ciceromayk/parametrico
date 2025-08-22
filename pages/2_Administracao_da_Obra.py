@@ -134,7 +134,7 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
             df_custos_obra,
             gridOptions=gridOptions,
             height=450,
-            width='100%',
+            width='80%',
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
             try_convert_numeric_dtypes=True,
