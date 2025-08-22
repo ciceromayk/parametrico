@@ -133,6 +133,13 @@ def render_sidebar(form_key):
     st.sidebar.title("Estudo de Viabilidade")
     st.sidebar.divider()
     
+    # Links de navegação para as páginas (menu estilizado)
+    st.sidebar.page_link("Início.py", label="Início", icon="🏠")
+    st.sidebar.page_link("pages/1_Custos_Diretos.py", label="Custos Diretos", icon="🏗️")
+    st.sidebar.page_link("pages/2_Custos_Indiretos.py", label="Custos Indiretos", icon="💸")
+    st.sidebar.page_link("pages/3_Resultados_e_Indicadores.py", label="Resultados e Indicadores", icon="📈")
+    st.sidebar.divider()
+    
     # Seção para carregar/editar projetos
     if "projeto_info" in st.session_state:
         info = st.session_state.projeto_info
