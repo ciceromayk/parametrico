@@ -69,8 +69,6 @@ if 'custos_indiretos_obra' not in st.session_state:
     st.session_state.custos_indiretos_obra = info.get('custos_indiretos_obra', {k: v for k, v in DEFAULT_CUSTOS_INDIRETOS_OBRA.items()})
 if 'duracao_obra' not in st.session_state:
     st.session_state.duracao_obra = info.get('duracao_obra', 12)
-if 'custos_obra_mensais' not in st.session_state:
-    st.session_state.custos_obra_mensais = info.get('custos_obra_mensais', {item: {'custo_mensal': valor, 'meses': st.session_state.duracao_obra} for item, valor in DEFAULT_CUSTOS_INDIRETOS_OBRA.items()})
 
 
 with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
@@ -87,19 +85,19 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
 
     # Prepara os dados para o AgGrid
     dados_tabela_obra = []
-    for item, valores in st.session_state.custos_obra_mensais.items():
+    total_mensal = sum(st.session_state.custos_indiretos_obra.values())
+    
+    for item, valor_mensal in st.session_state.custos_indiretos_obra.items():
         dados_tabela_obra.append({
             "Item": item,
-            "Custo Mensal (R$)": valores['custo_mensal'],
-            "Meses": valores['meses'],
-            "Custo Total (R$)": valores['custo_mensal'] * valores['meses']
+            "Custo Mensal (R$)": valor_mensal,
+            "Custo Total (R$)": valor_mensal * st.session_state.duracao_obra # Cálculo direto
         })
     
     df_custos_obra = pd.DataFrame(dados_tabela_obra)
 
     # Configura o AgGrid
     gb = GridOptionsBuilder.from_dataframe(df_custos_obra)
-    gb.configure_selection(selection_mode="multiple", use_checkbox=True)
 
     jscode_formatador_moeda = JsCode("""
         function(params) {
@@ -108,7 +106,7 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
         }
     """)
     
-    gb.configure_column("Item", headerName="Item", flex=3, resizable=True)
+    gb.configure_column("Item", headerName="Item", flex=5, resizable=True)
     gb.configure_column("Custo Mensal (R$)",
         headerName="Custo Mensal (R$)",
         editable=True,
@@ -116,13 +114,6 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
         flex=1,
         resizable=True,
         type=["numericColumn", "numberColumnFilter", "customNumericFormat"]
-    )
-    gb.configure_column("Meses",
-        headerName="Meses",
-        editable=True,
-        flex=1,
-        resizable=True,
-        type=["numericColumn", "numberColumnFilter"]
     )
     gb.configure_column("Custo Total (R$)",
         headerName="Custo Total (R$)",
@@ -132,14 +123,12 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
         type=["numericColumn", "numberColumnFilter"]
     )
     
-    # Adiciona uma lógica para selecionar todas as linhas por padrão
-    initial_selection = df_custos_obra.to_dict('records')
     gridOptions = gb.build()
 
     col_tabela_obra, col_metricas_obra = st.columns([0.6, 0.4])
 
     with col_tabela_obra:
-        st.markdown("##### Ajuste os Custos e Meses")
+        st.markdown("##### Ajuste os Custos Mensais")
         grid_response = AgGrid(
             df_custos_obra,
             gridOptions=gridOptions,
@@ -148,19 +137,11 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
             try_convert_numeric_dtypes=True,
-            theme='streamlit',
-            selected_rows=initial_selection, # Seleciona todas as linhas
+            theme='streamlit'
         )
     
     # Usa os dados editados
     edited_df_custos_obra = pd.DataFrame(grid_response['data'])
-    
-    # Aplica a duração do slider nas linhas selecionadas
-    selected_rows = grid_response['selected_rows']
-    if selected_rows:
-        for row_data in selected_rows:
-            item = row_data['Item']
-            st.session_state.custos_obra_mensais[item]['meses'] = st.session_state.duracao_obra
     
     # Recalcula o total a partir dos dados editados
     if not edited_df_custos_obra.empty:
@@ -168,11 +149,11 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
         custo_indireto_obra_total_recalculado = edited_df_custos_obra["Custo Total (R$)"].sum()
         
         # Salva o estado
-        st.session_state.custos_obra_mensais = {
-            row["Item"]: {'custo_mensal': row["Custo Mensal (R$)"], 'meses': row["Meses"]}
+        st.session_state.custos_indiretos_obra = {
+            row["Item"]: row["Custo Mensal (R$)"]
             for index, row in edited_df_custos_obra.iterrows()
         }
-        info['custos_obra_mensais'] = st.session_state.custos_obra_mensais
+        info['custos_indiretos_obra'] = st.session_state.custos_indiretos_obra
         info['duracao_obra'] = st.session_state.duracao_obra
         
         with col_metricas_obra:
