@@ -197,6 +197,9 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     
     def format_labels_and_values(pct, all_values):
         absolute_value = pct / 100. * sum(all_values)
+        # Verifica se o valor é zero para não exibir
+        if absolute_value == 0:
+            return ""
         return f'R$ {fmt_br(absolute_value)}\n({pct:.1f}%)'
 
     wedges, texts, autotexts = ax.pie(
@@ -206,11 +209,11 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
         startangle=90,
         colors=custos_cores,
         wedgeprops={'edgecolor': 'white', 'linewidth': 1.5},
-        textprops={'fontsize': 10},
+        textprops={'fontsize': 12}, # Aumenta a fonte das etiquetas
         pctdistance=1.2 # Reposiciona a distância do texto para fora da pizza
     )
     
-    # Mudar a cor das etiquetas de percentual para preto
+    # Ajustar as propriedades das etiquetas
     for text in autotexts:
         text.set_color('black')
         
@@ -344,10 +347,10 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             table.data-table th {{
                 background-color: #f2f2f2;
                 font-weight: bold;
-                font-size: 10px;
+                font-size: 14px;
             }}
             table.data-table td {{
-                font-size: 10px;
+                font-size: 12px;
             }}
             table.data-table tbody tr:nth-child(odd) {{
                 background-color: #f9f9f9;
