@@ -133,14 +133,15 @@ with st.expander("Análise Detalhada de Custos Indiretos", expanded=True):
     
     gridOptions = gb.build()
 
-    col1, col2 = st.columns([1, 1])
+    # Redimensiona as colunas para melhor alinhamento
+    col1, col2 = st.columns([0.8, 1])
 
     with col1:
         # Texto "Ajuste os Percentuais" removido daqui
         grid_response = AgGrid(
             df,
             gridOptions=gridOptions,
-            height=600, # Altura ajustada para alinhar com os cartões
+            height=580, # Altura ajustada para alinhar com os cartões
             width='100%',
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
@@ -152,8 +153,7 @@ with st.expander("Análise Detalhada de Custos Indiretos", expanded=True):
         st.write("### Resumo Financeiro")
         # Adiciona um espaço para alinhamento
         st.write("<br>", unsafe_allow_html=True)
-        st.write("<br>", unsafe_allow_html=True)
-
+        
         card_metric_pro(
             label="VGV Total",
             value=f"R$ {fmt_br(vgv_total)}",
