@@ -136,11 +136,11 @@ with st.expander("Análise Detalhada de Custos Indiretos", expanded=True):
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        st.write("### Ajuste os Percentuais")
+        # Texto "Ajuste os Percentuais" removido daqui
         grid_response = AgGrid(
             df,
             gridOptions=gridOptions,
-            height=350,
+            height=600, # Altura ajustada para alinhar com os cartões
             width='100%',
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
