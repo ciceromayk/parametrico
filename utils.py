@@ -63,6 +63,20 @@ DEFAULT_CUSTOS_INDIRETOS = {
     "Preparação do Terreno":        (0.2, 0.33, 1.0),
     "Financiamento Bancário":       (1.0, 1.9, 3.0),
 }
+
+# Novo dicionário para custos indiretos da obra, por mês
+DEFAULT_CUSTOS_INDIRETOS_OBRA = {
+    "Administração de Obra (Engenheiro/Arquiteto)": 15000.0,
+    "Mestre de Obras e Encarregados": 8000.0,
+    "Aluguel de Equipamentos (andaimes, betoneira, etc.)": 5000.0,
+    "Consumo de Energia": 1000.0,
+    "Consumo de Água": 500.0,
+    "Telefone e Internet": 300.0,
+    "Seguros e Licenças de Canteiro": 1200.0,
+    "Transporte de Materiais e Pessoas": 2500.0,
+    "Despesas de Escritório e Apoio": 800.0,
+}
+
 DEFAULT_CUSTOS_INDIRETOS_FIXOS = {}
 
 def init_storage(path):
@@ -172,7 +186,7 @@ def render_sidebar(form_key):
 def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
                        custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total,
                        custos_config, custos_indiretos_percentuais, pavimentos_df):
-    
+
     def create_html_card(title, value, color):
         return f"""
         <td style="background-color: {color}; color: white; border-radius: 8px; padding: 15px; text-align: center; width: 25%;">
@@ -298,7 +312,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
                 @top-center {{
                     content: "Relatório de Viabilidade - {info.get('nome', 'N/A')}";
                     font-family: 'Roboto', sans-serif;
-                    font-size: 14px;
+                    font-size: 10px;
                     color: #888;
                 }}
                 @bottom-right {{
@@ -419,9 +433,9 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
                     <th style="width: 32.50%;">Tipo</th>
                     <th style="width: 4%; text-align: center;">Rep.</th>
                     <th style="width: 4%; text-align: right;">Coef.</th>
-                    <th style="width: 14.75%; text-align: right;">Área (m²)</th>
-                    <th style="width: 18.00%; text-align: right;">Área Eq. Total (m²)</th>
-                    <th style="width: 16.75%; text-align: right;">Área Constr. (m²)</th>
+                    <th style="width: 20%; text-align: right;">Área (m²)</th>
+                    <th style="width: 20%; text-align: right;">Área Eq. Total (m²)</th>
+                    <th style="width: 20%; text-align: right;">Área Constr. (m²)</th>
                 </tr>
             </thead>
             <tbody>
