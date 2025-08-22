@@ -24,40 +24,7 @@ def page_project_selection():
     st.markdown("Selecione um projeto existente para analisar ou crie um novo para começar.")
     
     st.divider()
-
-    # Adiciona o botão para acionar o modal
-    if st.button("➕ Criar Novo Projeto", type="primary", use_container_width=True):
-        st.session_state["show_modal"] = True
-
-    # Lógica para mostrar o modal
-    if "show_modal" in st.session_state and st.session_state["show_modal"]:
-        with st.modal(key="modal_novo_projeto"):
-            st.subheader("➕ Criar Novo Projeto")
-            with st.form("new_project_form"):
-                st.write("Insira as informações básicas para começar:")
-                nome = st.text_input("Nome do Novo Projeto")
-                c1, c2, c3 = st.columns(3)
-                area_terreno = c1.number_input("Área Terreno (m²)", min_value=0.0, format="%.2f")
-                area_privativa = c2.number_input("Área Privativa Total (m²)", min_value=0.0, format="%.2f")
-                num_unidades = c3.number_input("Nº de Unidades", min_value=1, step=1)
-                
-                if st.form_submit_button("💾 Criar e Carregar Projeto", use_container_width=True):
-                    if not nome:
-                        st.error("O nome do projeto é obrigatório.")
-                    else:
-                        info = {
-                            "nome": nome, "area_terreno": area_terreno, "area_privativa": area_privativa, "num_unidades": num_unidades, "endereco": "",
-                            "custos_config": {"custo_terreno_m2": 2500.0, "custo_area_privativa": 4500.0, "preco_medio_venda_m2": 10000.0},
-                            "etapas_percentuais": {etapa: {"percentual": vals[1], "fonte": "Manual"} for etapa, vals in ETAPAS_OBRA.items()},
-                            "pavimentos": [DEFAULT_PAVIMENTO.copy()],
-                            "custos_indiretos_percentuais": {item: {"percentual": vals[1], "fonte": "Manual"} for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()},
-                            "custos_indiretos_fixos": DEFAULT_CUSTOS_INDIRETOS_FIXOS.copy()
-                        }
-                        save_project(info)
-                        st.session_state.projeto_info = info
-                        st.session_state["show_modal"] = False
-                        st.rerun()
-                
+    
     st.subheader("📂 Projetos Existentes")
     
     projetos = list_projects()
@@ -86,6 +53,33 @@ def page_project_selection():
             if cols[4].button("🗑️", key=f"delete_{proj['id']}", use_container_width=True, help=f"Excluir projeto '{proj['nome']}'"):
                 delete_project(proj['id'])
                 st.rerun()
+
+    st.divider()
+
+    with st.expander("➕ Criar Novo Projeto"):
+        with st.form("new_project_form"):
+            st.write("Insira as informações básicas para começar:")
+            nome = st.text_input("Nome do Novo Projeto")
+            c1, c2, c3 = st.columns(3)
+            area_terreno = c1.number_input("Área Terreno (m²)", min_value=0.0, format="%.2f")
+            area_privativa = c2.number_input("Área Privativa Total (m²)", min_value=0.0, format="%.2f")
+            num_unidades = c3.number_input("Nº de Unidades", min_value=1, step=1)
+            
+            if st.form_submit_button("💾 Criar e Carregar Projeto", use_container_width=True):
+                if not nome:
+                    st.error("O nome do projeto é obrigatório.")
+                else:
+                    info = {
+                        "nome": nome, "area_terreno": area_terreno, "area_privativa": area_privativa, "num_unidades": num_unidades, "endereco": "",
+                        "custos_config": {"custo_terreno_m2": 2500.0, "custo_area_privativa": 4500.0, "preco_medio_venda_m2": 10000.0},
+                        "etapas_percentuais": {etapa: {"percentual": vals[1], "fonte": "Manual"} for etapa, vals in ETAPAS_OBRA.items()},
+                        "pavimentos": [DEFAULT_PAVIMENTO.copy()],
+                        "custos_indiretos_percentuais": {item: {"percentual": vals[1], "fonte": "Manual"} for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()},
+                        "custos_indiretos_fixos": DEFAULT_CUSTOS_INDIRETOS_FIXOS.copy()
+                    }
+                    save_project(info)
+                    st.session_state.projeto_info = info
+                    st.switch_page("pages/1_Custos_Diretos.py")
 
 # Roteamento inicial
 if "projeto_info" in st.session_state:
