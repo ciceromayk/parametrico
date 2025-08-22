@@ -88,6 +88,11 @@ with st.container(border=True):
 
 st.divider()
 
+# Função para exibir a análise em um pop-up
+@st.dialog("Análise de Viabilidade com I.A.")
+def ai_analysis_dialog(analysis_text):
+    st.info(analysis_text)
+    
 # Adiciona o botão de análise com IA
 if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
     # Prepara o prompt com os dados mais importantes
@@ -145,7 +150,7 @@ if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
         try:
             # Configuração do API do Gemini
             # Verifica se a chave da API está disponível no ambiente
-            API_KEY = "AIzaSyB442-xfQtfJWm2wFR6jbeiqAWtHNUu3WM"
+            API_KEY = ""
             if 'GEMINI_API_KEY' in st.secrets:
                 API_KEY = st.secrets['GEMINI_API_KEY']
             
@@ -193,7 +198,7 @@ if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
                     result = response.json()
                     if result and 'candidates' in result and len(result['candidates']) > 0 and 'content' in result['candidates'][0] and 'parts' in result['candidates'][0]['content'] and len(result['candidates'][0]['content']['parts']) > 0:
                         analysis = result['candidates'][0]['content']['parts'][0]['text']
-                        st.session_state.ai_analysis = analysis
+                        ai_analysis_dialog(analysis)
                     else:
                         st.error("A I.A. não conseguiu gerar uma resposta válida. Por favor, tente novamente com dados diferentes ou ajuste o prompt.")
                 else:
@@ -203,12 +208,6 @@ if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
             st.error(f"Erro de conexão com a API da I.A.: {e}")
         except Exception as e:
             st.error(f"Ocorreu um erro inesperado: {e}")
-
-# Exibe o resultado da análise se ela existir na session_state
-if "ai_analysis" in st.session_state:
-    st.markdown("---")
-    st.subheader("🤖 Análise de Viabilidade com I.A.")
-    st.info(st.session_state.ai_analysis)
 
 # Botão de download do relatório PDF
 if st.button("Gerar e Baixar Relatório PDF", type="primary"):
