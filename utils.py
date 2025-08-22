@@ -217,16 +217,16 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             }}
             .card {{
                 flex: 1 1 23%; /* Flex-grow, flex-shrink, flex-basis for responsive layout */
-                min-width: 150px;
+                min-width: 80px;
                 color: white;
                 border-radius: 8px;
-                padding: 15px;
+                padding: 10px;
                 text-align: center;
                 box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
                 box-sizing: border-box;
             }}
-            .card-title {{ font-size: 14px; margin-bottom: 5px; font-weight: bold; }}
-            .card-value {{ font-size: 22px; font-weight: bold; }}
+            .card-title {{ font-size: 12px; margin-bottom: 5px; font-weight: bold; }}
+            .card-value {{ font-size: 14px; font-weight: bold; }}
             footer {{ position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 12px; color: #888; }}
         </style>
     </head>
