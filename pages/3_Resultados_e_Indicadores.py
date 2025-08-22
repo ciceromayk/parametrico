@@ -136,7 +136,7 @@ if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
             # Verifica se a chave da API está disponível no ambiente
             API_KEY = ""
             if 'GEMINI_API_KEY' in st.secrets:
-                API_KEY = st.secrets['GEMINI_API_KEY']
+                API_KEY = st.secrets['AIzaSyB442-xfQtfJWm2wFR6jbeiqAWtHNUu3WM']
             
             if not API_KEY:
                 st.error("Chave da API não encontrada. Por favor, adicione sua chave Gemini API na configuração do Streamlit (st.secrets).")
