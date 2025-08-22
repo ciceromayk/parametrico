@@ -2,6 +2,9 @@
 import streamlit as st
 import pandas as pd
 from utils import *
+import json
+import requests
+import time
 
 st.set_page_config(page_title="Resultados e Indicadores", layout="wide")
 
@@ -44,9 +47,9 @@ custo_terreno_total = info.get('area_terreno', 0) * custos_config.get('custo_ter
 
 # Obter o custo indireto de obra da session_state de forma segura
 custo_indireto_obra_total = 0
-if 'custos_obra_mensais' in st.session_state and 'duracao_obra' in st.session_state:
-    for item, valores in st.session_state.custos_obra_mensais.items():
-        custo_indireto_obra_total += valores['custo_mensal'] * valores['meses']
+if 'custos_indiretos_obra' in st.session_state and 'duracao_obra' in st.session_state:
+    for item, valor_mensal in st.session_state.custos_indiretos_obra.items():
+        custo_indireto_obra_total += valor_mensal * st.session_state.duracao_obra
 
 # TOTAIS - incluindo os custos indiretos de obra
 valor_total_despesas = custo_direto_total + custo_indireto_calculado + custo_terreno_total + custo_indireto_obra_total
@@ -85,6 +88,109 @@ with st.container(border=True):
 
 st.divider()
 
+# Adiciona o botão de análise com IA
+if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
+    # Prepara o prompt com os dados mais importantes
+    prompt_data = {
+        "nome_projeto": info.get('nome', 'Projeto Sem Nome'),
+        "vgv_total": vgv_total,
+        "custo_total": valor_total_despesas,
+        "lucro_bruto": lucratividade_valor,
+        "margem_lucro_percentual": lucratividade_percentual,
+        "custo_direto": custo_direto_total,
+        "custo_indireto_venda": custo_indireto_calculado,
+        "custo_indireto_obra": custo_indireto_obra_total,
+        "custo_terreno": custo_terreno_total,
+        "area_privativa": info.get('area_privativa', 0),
+        "area_terreno": info.get('area_terreno', 0),
+        "area_construida": area_construida_total
+    }
+
+    prompt = f"""
+    Aja como um analista de viabilidade de empreendimentos imobiliários sênior.
+    Sua tarefa é analisar os dados de um projeto e gerar um relatório conciso, em português, com as seguintes seções:
+    1.  **Resumo da Viabilidade**: Um parágrafo inicial que resume a saúde financeira do projeto, indicando se é viável, promissor ou de alto risco. Use a margem de lucro como principal indicador.
+    2.  **Análise de Desempenho**: Um parágrafo que detalha a performance do projeto, destacando os pontos fortes e fracos. Compare o VGV com o Custo Total e comente sobre o Lucro Bruto e a Margem de Lucro.
+    3.  **Recomendações Chave**: Uma lista com 3 a 5 recomendações acionáveis para melhorar a viabilidade do projeto. Pense em estratégias para aumentar a receita (VGV) ou reduzir custos.
+    
+    Abaixo estão os dados do projeto. Utilize-os para a análise. Os valores estão em Reais (R$).
+    
+    Dados do Projeto:
+    - Nome: {prompt_data['nome_projeto']}
+    - VGV Total: R$ {prompt_data['vgv_total']:.2f}
+    - Custo Total: R$ {prompt_data['custo_total']:.2f}
+    - Lucro Bruto: R$ {prompt_data['lucro_bruto']:.2f}
+    - Margem de Lucro: {prompt_data['margem_lucro_percentual']:.2f}%
+    - Custo Direto: R$ {prompt_data['custo_direto']:.2f}
+    - Custo Indireto de Venda: R$ {prompt_data['custo_indireto_venda']:.2f}
+    - Custo Indireto de Obra: R$ {prompt_data['custo_indireto_obra']:.2f}
+    - Custo do Terreno: R$ {prompt_data['custo_terreno']:.2f}
+    - Área Privativa: {prompt_data['area_privativa']:.2f} m²
+    - Área Construída: {prompt_data['area_construida']:.2f} m²
+    """
+    
+    # Adiciona a exibição de loading
+    with st.spinner("Gerando análise com I.A...."):
+        try:
+            # Configuração do API do Gemini
+            API_KEY = "" # Esta variável é preenchida automaticamente pelo ambiente
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key={API_KEY}"
+            
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt}
+                        ]
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.5,
+                    "topK": 1,
+                    "topP": 1,
+                    "maxOutputTokens": 2048,
+                    "responseMimeType": "text/plain"
+                }
+            }
+
+            headers = {
+                'Content-Type': 'application/json',
+            }
+            
+            # Tentar a chamada da API com backoff exponencial
+            max_retries = 5
+            base_delay = 1.0
+            for i in range(max_retries):
+                response = requests.post(url, headers=headers, data=json.dumps(payload))
+                if response.status_code == 200:
+                    break
+                elif response.status_code == 429 and i < max_retries - 1:
+                    delay = base_delay * (2 ** i)
+                    st.warning(f"Limite de taxa atingido. Tentando novamente em {delay:.1f} segundos...")
+                    time.sleep(delay)
+                else:
+                    response.raise_for_status()
+            
+            if response.status_code != 200:
+                st.error("Erro ao se comunicar com a API da I.A. Tente novamente mais tarde.")
+            else:
+                analysis = response.json()['candidates'][0]['content']['parts'][0]['text']
+                st.session_state.ai_analysis = analysis
+
+        except requests.exceptions.RequestException as e:
+            st.error(f"Erro de conexão com a API da I.A.: {e}")
+        except KeyError:
+            st.error("Erro ao processar a resposta da I.A. O formato da resposta não é o esperado.")
+        except Exception as e:
+            st.error(f"Ocorreu um erro inesperado: {e}")
+
+# Exibe o resultado da análise se ela existir na session_state
+if "ai_analysis" in st.session_state:
+    st.markdown("---")
+    st.subheader("🤖 Análise de Viabilidade com I.A.")
+    st.info(st.session_state.ai_analysis)
+
+# Botão de download do relatório PDF
 if st.button("Gerar e Baixar Relatório PDF", type="primary"):
     with st.spinner("Gerando seu relatório..."):
         pdf_data = generate_pdf_report(
