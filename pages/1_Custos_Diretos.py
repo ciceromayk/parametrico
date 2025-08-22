@@ -47,12 +47,12 @@ if not pavimentos_df.empty:
     custo_direto_total = pavimentos_df["custo_direto"].sum()
     area_construida_total = pavimentos_df["area_constr"].sum()
 
-# Calcular novos custos indiretos da obra
+# Calcular novos custos indiretos da obra (será usado na página de resultados)
 for item, valor_mensal in st.session_state.custos_indiretos_obra.items():
     custo_indireto_obra_total += valor_mensal * st.session_state.duracao_obra
 
-# O custo direto do projeto agora inclui os custos indiretos da obra
-custo_direto_total_com_indiretos = custo_direto_total + custo_indireto_obra_total
+# O custo direto do projeto agora inclui os custos indiretos de obra
+custo_direto_total_final = custo_direto_total
 
 
 with st.expander("📝 Dados Gerais do Projeto", expanded=True):
@@ -93,48 +93,6 @@ info['custos_indiretos_obra'] = st.session_state.custos_indiretos_obra
 info['duracao_obra'] = st.session_state.duracao_obra
 
 
-with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
-    st.markdown("---")
-    st.subheader("Configuração dos Custos Indiretos da Obra")
-    st.markdown("Estes custos são calculados com base na duração do projeto.")
-    st.session_state.duracao_obra = st.slider(
-        "Duração da Obra (meses):",
-        min_value=1,
-        max_value=60,
-        value=st.session_state.duracao_obra
-    )
-
-    df_custos_obra = pd.DataFrame([
-        {"Item": item, "Custo Mensal (R$)": valor}
-        for item, valor in st.session_state.custos_indiretos_obra.items()
-    ])
-
-    edited_df_custos_obra = st.data_editor(df_custos_obra, use_container_width=True, num_rows="dynamic")
-
-    if not edited_df_custos_obra.empty:
-        total_mensal = edited_df_custos_obra["Custo Mensal (R$)"].sum()
-        custo_indireto_obra_total_recalculado = total_mensal * st.session_state.duracao_obra
-        st.subheader("Resumo dos Custos Indiretos de Obra")
-        col_res1, col_res2, col_res3 = st.columns(3)
-        col_res1.metric(
-            "Custo Mensal Total",
-            f"R$ {fmt_br(total_mensal)}"
-        )
-        col_res2.metric(
-            "Duração da Obra (meses)",
-            st.session_state.duracao_obra
-        )
-        col_res3.metric(
-            "Custo Indireto de Obra Total",
-            f"R$ {fmt_br(custo_indireto_obra_total_recalculado)}"
-        )
-        st.session_state.custos_indiretos_obra = {
-            row["Item"]: row["Custo Mensal (R$)"]
-            for index, row in edited_df_custos_obra.iterrows()
-        }
-        custo_indireto_obra_total = custo_indireto_obra_total_recalculado
-
-
 if not pavimentos_df.empty:
     df = pd.DataFrame(info['pavimentos'])
     custos_config = info.get('custos_config', {})
@@ -143,8 +101,8 @@ if not pavimentos_df.empty:
     df["area_constr"] = df.apply(lambda r: r["area_total"] if r["constr"] else 0.0, axis=1)
     df["custo_direto"] = df["area_eq"] * custos_config.get('custo_area_privativa', 4500.0)
     
-    # O custo direto do projeto agora inclui os novos custos indiretos de obra
-    custo_direto_total_final = df["custo_direto"].sum() + custo_indireto_obra_total
+    # O custo direto do projeto agora é a soma simples dos custos diretos da construção
+    custo_direto_total_final = df["custo_direto"].sum()
     
     with st.expander("📊 Análise e Resumo Financeiro", expanded=True):
         total_constr = df["area_constr"].sum()
