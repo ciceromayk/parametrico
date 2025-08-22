@@ -192,18 +192,40 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     # Gerar o gráfico de pizza como imagem base64
     custos_labels = ['Custo Direto', 'Custo Indireto', 'Custo do Terreno']
     custos_valores = [custo_direto_total, custo_indireto_calculado, custo_terreno_total]
+    custos_cores = ['#4A7C93', '#73A6B4', '#A8D0DB']
     
-    # Criar a função de formatação para o autopct
-    def format_value_and_percent(pct):
-        absolute_value = pct / 100. * sum(custos_valores)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    def format_labels_and_values(pct, all_values):
+        absolute_value = pct / 100. * sum(all_values)
         return f'R$ {fmt_br(absolute_value)}\n({pct:.1f}%)'
 
-    fig, ax = plt.subplots(figsize=(8, 8)) # Tamanho ajustado para ocupar a largura da página
-    ax.pie(custos_valores, labels=custos_labels, autopct=format_value_and_percent, startangle=90, colors=['#31708f', '#8a6d3b', '#6f42c1'], textprops={'fontsize': 10})
-    ax.set_title("Composição do Custo Total")
+    wedges, texts, autotexts = ax.pie(
+        custos_valores,
+        autopct=lambda pct: format_labels_and_values(pct, custos_valores),
+        startangle=90,
+        colors=custos_cores,
+        wedgeprops={'edgecolor': 'white', 'linewidth': 1.5},
+        textprops={'fontsize': 10},
+        pctdistance=1.25 # Distância da etiqueta do centro da pizza
+    )
+    
+    # Reposicionar as etiquetas de texto para fora da pizza
+    for text in texts:
+        text.set_color('black')
+
+    # Aumentar a fonte do título e reposicioná-lo para que não sobreponha a legenda
+    ax.set_title("Composição do Custo Total", fontsize=18, y=1.05)
+    
+    # Adicionar legenda com a descrição
+    ax.legend(wedges, custos_labels,
+              title="Tipos de Custo",
+              loc="center left",
+              bbox_to_anchor=(1, 0, 0.5, 1),
+              fontsize='12')
     
     buf = BytesIO()
-    fig.savefig(buf, format="png")
+    fig.savefig(buf, format="png", bbox_inches='tight') # Usa bbox_inches para evitar cortes
     plt.close(fig)
     grafico_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
 
@@ -330,10 +352,10 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             table.data-table th {{
                 background-color: #f2f2f2;
                 font-weight: bold;
-                font-size: 14px; /* Tamanho da fonte do cabeçalho da tabela */
+                font-size: 14px;
             }}
             table.data-table td {{
-                font-size: 12px; /* Tamanho da fonte do corpo da tabela */
+                font-size: 12px;
             }}
             table.data-table tbody tr:nth-child(odd) {{
                 background-color: #f9f9f9;
