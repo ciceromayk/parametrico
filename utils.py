@@ -298,7 +298,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
                 @top-center {{
                     content: "Relatório de Viabilidade - {info.get('nome', 'N/A')}";
                     font-family: 'Roboto', sans-serif;
-                    font-size: 10px;
+                    font-size: 14px;
                     color: #888;
                 }}
                 @bottom-right {{
@@ -363,10 +363,10 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             table.data-table th {{
                 background-color: #f2f2f2;
                 font-weight: bold;
-                font-size: 14px;
+                font-size: 11px;
             }}
             table.data-table td {{
-                font-size: 12px;
+                font-size: 10px;
             }}
             table.data-table tbody tr:nth-child(odd) {{
                 background-color: #f9f9f9;
