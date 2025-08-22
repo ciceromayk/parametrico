@@ -4,11 +4,13 @@ import streamlit as st
 import pandas as pd
 from utils import *
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Configurações de estilo globais
 st.set_page_config(
-    page_title="Custos Indiretos", 
-    layout="wide", 
+    page_title="Custos Indiretos",
+    layout="wide",
     page_icon="💸"
 )
 
@@ -26,7 +28,7 @@ def card_metric_pro(label, value, delta=None, icon_name="cash-coin"):
         background: linear-gradient(145deg, #f9f9f9, #ffffff);
         box-shadow: 5px 5px 15px rgba(0,0,0,0.05);
         transition: transform 0.3s ease;
-    " 
+    "
     onmouseover="this.style.transform='scale(1.03)'"
     onmouseout="this.style.transform='scale(1)'"
     >
@@ -58,9 +60,9 @@ custos_config = info.get('custos_config', {})
 preco_medio_venda_m2 = custos_config.get('preco_medio_venda_m2', 10000.0)
 vgv_total = info.get('area_privativa', 0) * preco_medio_venda_m2
 
-# Bloco principal com a nova tabela AgGrid
-with st.expander("Detalhamento de Custos Indiretos", expanded=True):
-    st.subheader("Custos Indiretos (calculados sobre o VGV)")
+# Bloco principal com a nova tabela AgGrid e Gráficos
+with st.expander("Análise Detalhada de Custos Indiretos", expanded=True):
+    st.subheader("Configuração e Análise de Custos Indiretos")
 
     # Inicialização do session_state
     if 'custos_indiretos_percentuais' not in st.session_state:
@@ -71,7 +73,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         else:
             st.session_state.custos_indiretos_percentuais = {item: custos_salvos.get(item, {"percentual": vals[1], "fonte": "Manual"}) for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
 
-    # Preparar os Dados para o AgGrid
+    # Preparar os Dados para o AgGrid e Gráficos
     dados_tabela = []
     for item, (min_val, default_val, max_val) in DEFAULT_CUSTOS_INDIRETOS.items():
         percentual_atual = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val})['percentual']
@@ -79,7 +81,7 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         
         dados_tabela.append({
             "Item": item,
-            "%": percentual_atual,
+            "Percentual (%)": percentual_atual,
             "Custo (R$)": custo_calculado,
         })
 
@@ -95,60 +97,84 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         }
     """)
 
-    gb.configure_column("Item", headerName="Item", flex=5, resizable=True) 
-    gb.configure_column("%", 
-        headerName="%", 
-        editable=True, 
-        flex=1, 
+    gb.configure_column("Item", headerName="Item", flex=5, resizable=True)
+    gb.configure_column("Percentual (%)",
+        headerName="Percentual (%)",
+        editable=True,
+        flex=1,
         resizable=False,
         type=["numericColumn", "numberColumnFilter", "customNumericFormat"],
         precision=2
     )
-    gb.configure_column("Custo (R$)", 
-        headerName="Custo (R$)", 
-        valueFormatter=jscode_formatador_moeda, 
-        flex=1, 
+    gb.configure_column("Custo (R$)",
+        headerName="Custo (R$)",
+        valueFormatter=jscode_formatador_moeda,
+        flex=1,
         resizable=False,
         type=["numericColumn", "numberColumnFilter"]
     )
     
     gridOptions = gb.build()
 
-    # Centralizar a tabela
-    _, col_tabela, _ = st.columns([3, 2, 3])
-    
-    with col_tabela:
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        st.write("### Ajuste os Percentuais")
         grid_response = AgGrid(
             df,
             gridOptions=gridOptions,
-            height=450,
-            width=1000,
+            height=350,
+            width='100%',
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
             try_convert_numeric_dtypes=True,
             theme='streamlit'
         )
-    
+        
+    with col2:
+        st.write("### Participação no VGV")
+        df_sorted = df.sort_values(by='Percentual (%)', ascending=False)
+        fig_pie = px.pie(df_sorted, values='Percentual (%)', names='Item',
+                         title='Composição dos Custos Indiretos')
+        fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+        fig_pie.update_layout(showlegend=False, margin=dict(l=20, r=20, t=40, b=20),
+                              height=350)
+        st.plotly_chart(fig_pie, use_container_width=True)
+
     # Usar os Dados Editados
     edited_df = grid_response['data']
     
-    edited_df["Custo (R$)"] = vgv_total * (pd.to_numeric(edited_df["%"], errors='coerce').fillna(0) / 100)
+    # Recalcular "Custo (R$)" baseado no percentual editado
+    edited_df["Custo (R$)"] = vgv_total * (pd.to_numeric(edited_df["Percentual (%)"], errors='coerce').fillna(0) / 100)
     custo_indireto_calculado = edited_df["Custo (R$)"].sum()
     
     for index, row in edited_df.iterrows():
         item_nome = row["Item"]
-        novo_percentual = row["%"]
+        novo_percentual = row["Percentual (%)"]
         st.session_state.custos_indiretos_percentuais[item_nome]['percentual'] = novo_percentual
 
     # Adicionar espaçamento vertical
     st.write("<br>", unsafe_allow_html=True)
+
+    st.subheader("Resumo Financeiro")
+    col3, col4, col5 = st.columns([1, 1, 1])
     
-    # Centralizar o card de métricas
-    _, col_metrica, _ = st.columns([3, 6, 3])
-    
-    with col_metrica:
+    with col3:
+        card_metric_pro(
+            label="VGV Total",
+            value=f"R$ {fmt_br(vgv_total)}",
+            icon_name="building-fill-up"
+        )
+    with col4:
         card_metric_pro(
             label="Custo Indireto Total",
             value=f"R$ {fmt_br(custo_indireto_calculado)}",
             icon_name="cash-coin"
         )
+    with col5:
+        card_metric_pro(
+            label="% do Custo Indireto",
+            value=f"{((custo_indireto_calculado / vgv_total) * 100):.2f}%",
+            icon_name="percent"
+        )
+
