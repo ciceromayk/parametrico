@@ -25,13 +25,17 @@ st.markdown("""
     .ag-cell {
         font-size: 18px !important;
     }
+    /* Classe para remover o padding superior do subheader */
+    .st-emotion-cache-1r65j0p {
+        padding-top: 0rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 
-def card_metric_pro(label, value, delta=None, icon_name="cash-coin"):
+def card_metric_pro(label, value, delta=None, icon_name="cash-coin", bg_color="#f9f9f9", text_color="#007bff"):
     """
-    Cartão de métrica profissional com design moderno
+    Cartão de métrica profissional com design moderno e cores personalizáveis
     """
     st.markdown(f"""
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -40,7 +44,7 @@ def card_metric_pro(label, value, delta=None, icon_name="cash-coin"):
         border-radius: 12px;
         padding: 20px;
         text-align: center;
-        background: linear-gradient(145deg, #f9f9f9, #ffffff);
+        background: {bg_color};
         box-shadow: 5px 5px 15px rgba(0,0,0,0.05);
         transition: transform 0.3s ease;
     "
@@ -48,10 +52,10 @@ def card_metric_pro(label, value, delta=None, icon_name="cash-coin"):
     onmouseout="this.style.transform='scale(1)'"
     >
         <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
-            <i class="bi bi-{icon_name}" style="font-size: 1.5em; margin-right: 10px; color: #007bff;"></i>
+            <i class="bi bi-{icon_name}" style="font-size: 1.5em; margin-right: 10px; color: {text_color};"></i>
             <h3 style="margin: 0; color: #333; font-size: 1.2em;">{label}</h3>
         </div>
-        <p style="font-size: 2.5em; font-weight: bold; margin: 0; color: #007bff;">{value}</p>
+        <p style="font-size: 2.5em; font-weight: bold; margin: 0; color: {text_color};">{value}</p>
         {f'<p style="color: {"green" if delta and delta > 0 else "red"}; font-size: 1em;">{f"+{delta}%" if delta else ""}</p>' if delta is not None else ''}
     </div>
     """, unsafe_allow_html=True)
@@ -134,14 +138,13 @@ with st.expander("Análise Detalhada de Custos Indiretos", expanded=True):
     gridOptions = gb.build()
 
     # Redimensiona as colunas para melhor alinhamento
-    col1, col2 = st.columns([0.8, 1])
+    col1, col2 = st.columns([0.6, 0.4])
 
     with col1:
-        # Texto "Ajuste os Percentuais" removido daqui
         grid_response = AgGrid(
             df,
             gridOptions=gridOptions,
-            height=580, # Altura ajustada para alinhar com os cartões
+            height=480, # Altura ajustada para alinhar com os cartões
             width='100%',
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
@@ -150,28 +153,32 @@ with st.expander("Análise Detalhada de Custos Indiretos", expanded=True):
         )
         
     with col2:
-        st.write("### Resumo Financeiro")
-        # Adiciona um espaço para alinhamento
-        st.write("<br>", unsafe_allow_html=True)
+        st.subheader("Resumo Financeiro")
         
         card_metric_pro(
             label="VGV Total",
             value=f"R$ {fmt_br(vgv_total)}",
-            icon_name="building-fill-up"
+            icon_name="building-fill-up",
+            bg_color="linear-gradient(145deg, #e6f2ff, #cce5ff)", # Azul claro
+            text_color="#0056b3"
         )
         st.write("<br>", unsafe_allow_html=True)
         
         card_metric_pro(
             label="Custo Indireto Total",
             value=f"R$ {fmt_br(custo_indireto_calculado)}",
-            icon_name="cash-coin"
+            icon_name="cash-coin",
+            bg_color="linear-gradient(145deg, #f0fff0, #d9f7d9)", # Verde claro
+            text_color="#28a745"
         )
         st.write("<br>", unsafe_allow_html=True)
         
         card_metric_pro(
             label="% do Custo Indireto",
             value=f"{((custo_indireto_calculado / vgv_total) * 100):.2f}%",
-            icon_name="percent"
+            icon_name="percent",
+            bg_color="linear-gradient(145deg, #fff5e6, #ffe0b3)", # Laranja claro
+            text_color="#ff7f00"
         )
         
     # Usar os Dados Editados
