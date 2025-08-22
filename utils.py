@@ -158,8 +158,6 @@ def render_sidebar(form_key="edit_form_sidebar"):
             for key in keys_to_delete:
                 if key in st.session_state: del st.session_state[key]
             st.switch_page("Início.py")
-
-# --- NOVA FUNÇÃO DE GERAÇÃO DE PDF ---
 def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
                         custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total):
     
