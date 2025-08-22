@@ -127,15 +127,19 @@ def handle_percentage_redistribution(session_key, constants_dict):
                 current[item]['percentual'] = max(min_val, min(new_percent, max_val))
     st.session_state[previous_key] = {k: v.copy() for k, v in current.items()}; st.rerun()
 
-def render_sidebar(form_key="edit_form_sidebar"):
+
+def render_sidebar(form_key):
     st.sidebar.title("Estudo de Viabilidade")
     st.sidebar.divider()
     
+    # Criamos uma chave de formulário única para esta página
+    form_key_unique = f"edit_form_sidebar_{form_key}"
+
     if "projeto_info" in st.session_state:
         info = st.session_state.projeto_info
         st.sidebar.subheader(f"Projeto: {info['nome']}")
         with st.sidebar.expander("📝 Dados Gerais do Projeto"):
-            with st.form(key=form_key):
+            with st.form(key=form_key_unique):
                 info['nome'] = st.text_input("Nome", value=info['nome'])
                 info['area_terreno'] = st.number_input("Área Terreno (m²)", value=info['area_terreno'], format="%.2f")
                 info['area_privativa'] = st.number_input("Área Privativa (m²)", value=info['area_privativa'], format="%.2f")
