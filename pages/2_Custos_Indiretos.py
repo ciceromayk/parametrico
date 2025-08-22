@@ -2,7 +2,6 @@
 
 import streamlit as st
 import pandas as pd
-from utils import *
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 
 # Configurações de estilo globais
@@ -73,4 +72,61 @@ def configurar_grid(df):
         headerName="% VGV", 
         editable=True, 
         cellStyle=jscode_estilo_percentual,
-        type=
+        type=["numericColumn"]
+    )
+    
+    gb.configure_column("Custo(R$)", 
+        headerName="Custo (R$)", 
+        valueFormatter=jscode_formatador_moeda,
+        type=["numericColumn"]
+    )
+    
+    gb.configure_grid_options(
+        enableRangeSelection=True,
+        enableCellTextSelection=True
+    )
+    
+    return gb.build()
+
+def main():
+    st.title("📊 Custos Indiretos")
+    
+    # Dados de Custos Indiretos
+    dados_custos = {
+        "Item": [
+            "IRPJ/CS/PIS/COFINS", "Contratação", "Publicidade", 
+            "Manutenção", "Custo Fixo Incorporadora", "Assessoria Técnica", 
+            "Projetos", "Licença e Incorporação", "Outorga Onerosa", 
+            "Condomínio", "IPTU", "Preparação de Terreno", 
+            "Financiamento Bancário"
+        ],
+        "%": [
+            4.00, 3.51, 0.90, 0.50, 4.00, 0.70, 
+            0.52, 0.30, 0.00, 0.00, 0.07, 0.33, 
+            1.90
+        ],
+        "Custo(R$)": [
+            2460000.00, 2156000.00, 552000.00, 
+            308000.00, 2460000.00, 430000.00, 
+            320000.00, 184000.00, 0.00, 
+            0.00, 43000.00, 203000.00, 
+            1168000.00
+        ]
+    }
+    
+    df_custos = pd.DataFrame(dados_custos)
+    
+    # Grid interativo com AgGrid
+    grid_options = configurar_grid(df_custos)
+    AgGrid(df_custos, gridOptions=grid_options, theme='alpine')
+    
+    # Métrica de Custo Indireto Total
+    custo_total = df_custos['Custo(R$)'].sum()
+    card_metric_pro(
+        "Custo Indireto Total", 
+        f"R$ {custo_total:,.2f}", 
+        icon_name="pie-chart"
+    )
+
+if __name__ == "__main__":
+    main()
