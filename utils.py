@@ -5,6 +5,9 @@ import json
 import os
 from datetime import datetime
 from weasyprint import HTML
+import base64
+from io import BytesIO
+import matplotlib.pyplot as plt
 
 # --- CONSTANTES GLOBAIS e outras funções ---
 
@@ -186,6 +189,19 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
         </td>
         """
     
+    # Gerar o gráfico de pizza como imagem base64
+    custos_labels = ['Custo Direto', 'Custo Indireto', 'Custo do Terreno']
+    custos_valores = [custo_direto_total, custo_indireto_calculado, custo_terreno_total]
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.pie(custos_valores, labels=custos_labels, autopct='%1.1f%%', startangle=90, colors=['#31708f', '#8a6d3b', '#6f42c1'])
+    ax.set_title("Composição do Custo Total")
+    
+    buf = BytesIO()
+    fig.savefig(buf, format="png")
+    plt.close(fig)
+    grafico_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+
     # Criar tabela de detalhamento dos pavimentos
     tabela_pavimentos_html = ""
     if not pavimentos_df.empty:
@@ -310,6 +326,12 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
                 background-color: #f2f2f2;
                 font-weight: bold;
             }}
+            table.data-table tbody tr:nth-child(odd) {{
+                background-color: #f9f9f9;
+            }}
+            table.data-table tbody tr:hover {{
+                background-color: #f1f1f1;
+            }}
         </style>
     </head>
     <body>
@@ -318,7 +340,17 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             <h2>{info.get('nome', 'N/A')}</h2>
             <p>Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
         </div>
-
+        
+        <h2 class="section-title">Resumo Financeiro e de Área</h2>
+        <table class="card-container">
+            <tr>
+                {create_html_card("VGV Total", f"R$ {fmt_br(vgv_total)}", "#00829d")}
+                {create_html_card("Custo Total", f"R$ {fmt_br(valor_total_despesas)}", "#6a42c1")}
+                {create_html_card("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}", "#3c763d")}
+                {create_html_card("Margem de Lucro", f"{lucratividade_percentual:.2f}%", "#a94442")}
+            </tr>
+        </table>
+        
         <h2 class="section-title">Dados de Área e Venda</h2>
         <table class="card-container">
             <tr>
@@ -328,35 +360,10 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
                 {create_html_card("Relação AC/AP", f"{relacao_ac_priv:.2f}", "#d62728")}
             </tr>
         </table>
-        
-        <h2 class="section-title">Resultados Financeiros</h2>
-        <table class="card-container">
-             <tr>
-                {create_html_card("VGV Total", f"R$ {fmt_br(vgv_total)}", "#00829d")}
-                {create_html_card("Custo Total", f"R$ {fmt_br(valor_total_despesas)}", "#6a42c1")}
-                {create_html_card("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}", "#3c763d")}
-                {create_html_card("Margem de Lucro", f"{lucratividade_percentual:.2f}%", "#a94442")}
-            </tr>
-        </table>
 
-        <h2 class="section-title">Composição do Custo Total</h2>
-        <table class="card-container">
-            <tr>
-                {create_html_card(f"Custo Direto ({(custo_direto_total / valor_total_despesas * 100) if valor_total_despesas > 0 else 0:.2f}%)", f"R$ {fmt_br(custo_direto_total)}", "#31708f")}
-                {create_html_card(f"Custo Indireto ({(custo_indireto_calculado / valor_total_despesas * 100) if valor_total_despesas > 0 else 0:.2f}%)", f"R$ {fmt_br(custo_indireto_calculado)}", "#8a6d3b")}
-                {create_html_card(f"Custo do Terreno ({(custo_terreno_total / valor_total_despesas * 100) if valor_total_despesas > 0 else 0:.2f}%)", f"R$ {fmt_br(custo_terreno_total)}", "#6f42c1")}
-            </tr>
-        </table>
-
-        <h2 class="section-title">Indicadores por Área Construída</h2>
-        <table class="card-container">
-            <tr>
-                {create_html_card("Terreno / Custo Total", f"{(custo_terreno_total / valor_total_despesas * 100) if valor_total_despesas > 0 else 0:.2f}%", "#fd7e14")}
-                {create_html_card("Custo Direto / m²", f"R$ {fmt_br(custo_direto_total / area_construida_total if area_construida_total > 0 else 0)}", "#20c997")}
-                {create_html_card("Custo Indireto / m²", f"R$ {fmt_br(custo_indireto_calculado / area_construida_total if area_construida_total > 0 else 0)}", "#31708f")}
-                {create_html_card("Custo Total / m²", f"R$ {fmt_br(valor_total_despesas / area_construida_total if area_construida_total > 0 else 0)}", "#8a6d3b")}
-            </tr>
-        </table>
+        <div style="text-align: center; margin-top: 30px;">
+            <img src="data:image/png;base64,{grafico_base64}" alt="Gráfico de Composição do Custo Total" style="width: 50%; max-width: 400px;"/>
+        </div>
 
         <div class="page-break"></div>
         <h2 class="section-title">Detalhamento dos Pavimentos</h2>
