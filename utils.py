@@ -5,9 +5,25 @@ import json
 import os
 from datetime import datetime
 from weasyprint import HTML
+import locale
 
 # --- CONSTANTES GLOBAIS e outras funções ---
-# (Toda a parte inicial do seu arquivo, até a função render_sidebar, continua exatamente igual)
+
+# Define o locale para formatação de moeda brasileira
+try:
+    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+except locale.Error:
+    # Fallback para sistemas que não suportam 'pt_BR.UTF-8'
+    locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
+
+def fmt_br(value):
+    """
+    Formata um valor numérico para a moeda brasileira (R$).
+    """
+    if pd.isna(value):
+        return "R$ 0,00"
+    return locale.currency(value, grouping=True, symbol=None)
+
 JSON_PATH = "projects.json"
 HISTORICO_DIRETO_PATH = "historico_direto.json"
 HISTORICO_INDIRETO_PATH = "historico_indireto.json"
@@ -23,33 +39,33 @@ DEFAULT_PAVIMENTO = {"nome": "Pavimento Tipo", "tipo": "Área Privativa (Autôno
 
 ETAPAS_OBRA = {
     "Serviços Preliminares e Fundações":        (7.0, 8.0, 9.0),
-    "Estrutura (Supraestrutura)":              (14.0, 16.0, 22.0),
+    "Estrutura (Supraestrutura)":               (14.0, 16.0, 22.0),
     "Vedações (Alvenaria)":                     (8.0, 10.0, 15.0),
-    "Cobertura e Impermeabilização":           (4.0, 5.0, 8.0),
-    "Revestimentos de Fachada":                (5.0, 6.0, 10.0),
-    "Instalações (Elétrica e Hidráulica)":     (12.0, 15.0, 18.0),
-    "Esquadrias (Portas e Janelas)":           (6.0, 8.0, 12.0),
-    "Revestimentos de Piso":                   (8.0, 10.0, 15.0),
-    "Revestimentos de Parede":                 (6.0, 8.0, 12.0),
-    "Revestimentos de Forro":                  (3.0, 4.0, 6.0),
-    "Pintura":                                 (4.0, 5.0, 8.0),
-    "Serviços Complementares e Externos":      (3.0, 5.0, 10.0)
+    "Cobertura e Impermeabilização":            (4.0, 5.0, 8.0),
+    "Revestimentos de Fachada":                 (5.0, 6.0, 10.0),
+    "Instalações (Elétrica e Hidráulica)":      (12.0, 15.0, 18.0),
+    "Esquadrias (Portas e Janelas)":            (6.0, 8.0, 12.0),
+    "Revestimentos de Piso":                    (8.0, 10.0, 15.0),
+    "Revestimentos de Parede":                  (6.0, 8.0, 12.0),
+    "Revestimentos de Forro":                   (3.0, 4.0, 6.0),
+    "Pintura":                                  (4.0, 5.0, 8.0),
+    "Serviços Complementares e Externos":       (3.0, 5.0, 10.0)
 }
 
 DEFAULT_CUSTOS_INDIRETOS = {
-    "IRPJ/ CS/ PIS/ COFINS":       (3.0, 4.0, 6.0),
-    "Corretagem":                      (3.0, 3.61, 5.0),
-    "Publicidade":                     (0.5, 0.9, 2.0),
-    "Manutenção":                      (0.3, 0.5, 1.0),
+    "IRPJ/ CS/ PIS/ COFINS":        (3.0, 4.0, 6.0),
+    "Corretagem":                   (3.0, 3.61, 5.0),
+    "Publicidade":                  (0.5, 0.9, 2.0),
+    "Manutenção":                   (0.3, 0.5, 1.0),
     "Custo Fixo da Incorporadora": (3.0, 4.0, 6.0),
-    "Assessoria Técnica":              (0.5, 0.7, 1.5),
-    "Projetos":                        (0.4, 0.52, 1.5),
-    "Licenças e Incorporação":         (0.1, 0.2, 0.5),
-    "Outorga Onerosa":                 (0.0, 0.0, 10.0),
-    "Condomínio":                      (0.0, 0.0, 0.5),
-    "IPTU":                            (0.05, 0.07, 0.2),
-    "Preparação do Terreno":           (0.2, 0.33, 1.0),
-    "Financiamento Bancário":          (1.0, 1.9, 3.0),
+    "Assessoria Técnica":           (0.5, 0.7, 1.5),
+    "Projetos":                     (0.4, 0.52, 1.5),
+    "Licenças e Incorporação":      (0.1, 0.2, 0.5),
+    "Outorga Onerosa":              (0.0, 0.0, 10.0),
+    "Condomínio":                   (0.0, 0.0, 0.5),
+    "IPTU":                         (0.05, 0.07, 0.2),
+    "Preparação do Terreno":        (0.2, 0.33, 1.0),
+    "Financiamento Bancário":       (1.0, 1.9, 3.0),
 }
 DEFAULT_CUSTOS_INDIRETOS_FIXOS = {}
 
@@ -95,10 +111,9 @@ def save_to_historico(info, tipo_custo):
     save_json(historico, path)
     st.toast(f"Custos {tipo_custo} de '{info['nome']}' arquivados no histórico!", icon="📚")
 
-def fmt_br(valor):
-    s = f"{valor:,.2f}"; return s.replace(",", "X").replace(".", ",").replace("X", ".")
 def render_metric_card(title, value, color="#31708f"):
     return f"""<div style="background-color:{color}; border-radius:6px; padding:15px; text-align:center; height:100%;"><div style="color:#fff; font-size:16px; margin-bottom:4px;">{title}</div><div style="color:#fff; font-size:28px; font-weight:bold;">{value}</div></div>"""
+
 def handle_percentage_redistribution(session_key, constants_dict):
     previous_key = f"previous_{session_key}"
     if previous_key not in st.session_state: st.session_state[previous_key] = {k: v.copy() for k, v in st.session_state[session_key].items()}
@@ -159,7 +174,7 @@ def render_sidebar(form_key="edit_form_sidebar"):
 
 # --- NOVA FUNÇÃO DE GERAÇÃO DE PDF ---
 def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
-                        custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total):
+                       custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total):
     
     # Função auxiliar para criar um card em HTML
     def create_html_card(title, value, color):
@@ -239,3 +254,4 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
 
     # Converte a string HTML para PDF em memória e retorna os bytes
     return HTML(string=html_string).write_pdf()
+
