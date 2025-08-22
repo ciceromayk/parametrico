@@ -223,27 +223,7 @@ def generate_ai_analysis():
             st.error(f"Ocorreu um erro inesperado: {e}")
     return None
 
-# --- DEFINIÇÃO DO DIALOG (POP-UP) ---
-@st.dialog("Análise de Viabilidade com I.A.")
-def ai_analysis_dialog():
-    if "ai_analysis" in st.session_state and st.session_state.ai_analysis:
-        # Divide o texto em seções baseadas nos cabeçalhos numerados
-        sections = st.session_state.ai_analysis.split('\n\n')
-        
-        # Itera sobre as seções e formata cada uma individualmente
-        for section in sections:
-            if section.strip():
-                if section.startswith("1. ") or section.startswith("2. ") or section.startswith("3. ") or section.startswith("4. ") or section.startswith("5. "):
-                    parts = section.split('\n', 1)
-                    header = parts[0].strip()
-                    content = parts[1].strip() if len(parts) > 1 else ""
-                    st.markdown(f"**{header}**")
-                    st.markdown(content)
-                else:
-                    st.markdown(section.strip())
-    else:
-        st.warning("Não há análise para ser exibida.")
-
+# --- DEFINIÇÃO DO DIALOG (POP-UP) PARA A API KEY ---
 @st.dialog("Adicionar Chave da API")
 def api_key_dialog():
     st.write("Para usar a análise de I.A., por favor, insira sua chave da API do Google Gemini.")
@@ -263,11 +243,28 @@ if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
     if "gemini_api_key" not in st.session_state or not st.session_state.gemini_api_key:
         api_key_dialog()
     else:
-        # Tenta gerar a análise
+        # Tenta gerar a análise e exibe-a no expander
         analysis_text = generate_ai_analysis()
         if analysis_text:
             st.session_state.ai_analysis = analysis_text
-            ai_analysis_dialog()
+
+# Exibe a análise em um expander se ela existir na session_state
+if "ai_analysis" in st.session_state and st.session_state.ai_analysis:
+    with st.expander("🤖 Análise de Viabilidade com I.A.", expanded=True):
+        # Divide o texto em seções baseadas nos cabeçalhos numerados
+        sections = st.session_state.ai_analysis.split('\n\n')
+        
+        # Itera sobre as seções e formata cada uma individualmente
+        for section in sections:
+            if section.strip():
+                if section.startswith("1. ") or section.startswith("2. ") or section.startswith("3. ") or section.startswith("4. ") or section.startswith("5. "):
+                    parts = section.split('\n', 1)
+                    header = parts[0].strip()
+                    content = parts[1].strip() if len(parts) > 1 else ""
+                    st.markdown(f"**{header}**")
+                    st.markdown(content)
+                else:
+                    st.markdown(section.strip())
 
 # Botão de download do relatório PDF
 if st.button("Gerar e Baixar Relatório PDF", type="primary"):
@@ -283,7 +280,3 @@ if st.button("Gerar e Baixar Relatório PDF", type="primary"):
             file_name=f"Relatorio_{info['nome']}.pdf",
             mime="application/pdf"
         )
-
-# Para reabrir o diálogo com a análise, caso o usuário feche
-if "ai_analysis" in st.session_state and st.button("Reexibir Análise de I.A."):
-    ai_analysis_dialog()
