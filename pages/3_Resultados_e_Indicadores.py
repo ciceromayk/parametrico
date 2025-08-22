@@ -88,13 +88,9 @@ with st.container(border=True):
 
 st.divider()
 
-# Função para exibir a análise em um pop-up
-@st.dialog("Análise de Viabilidade com I.A.")
-def ai_analysis_dialog(analysis_text):
-    st.info(analysis_text)
-    
-# Adiciona o botão de análise com IA
-if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
+# --- DEFINIÇÃO DA LÓGICA DE GERAÇÃO DA ANÁLISE ---
+def generate_ai_analysis():
+    """Gera a análise de viabilidade com IA e exibe o resultado."""
     # Prepara o prompt com os dados mais importantes
     prompt_data = {
         "nome_projeto": info.get('nome', 'Projeto Sem Nome'),
@@ -148,66 +144,89 @@ if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
     # Adiciona a exibição de loading
     with st.spinner("Gerando análise com I.A...."):
         try:
-            # Configuração do API do Gemini
-            # Verifica se a chave da API está disponível no ambiente
-            API_KEY = ""
-            if 'GEMINI_API_KEY' in st.secrets:
-                API_KEY = st.secrets['GEMINI_API_KEY']
+            API_KEY = st.session_state.gemini_api_key
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key={API_KEY}"
             
-            if not API_KEY:
-                st.error("Chave da API não encontrada. Por favor, adicione sua chave Gemini API na configuração do Streamlit (st.secrets).")
-            else:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key={API_KEY}"
-                
-                payload = {
-                    "contents": [
-                        {
-                            "parts": [
-                                {"text": prompt}
-                            ]
-                        }
-                    ],
-                    "generationConfig": {
-                        "temperature": 0.5,
-                        "topK": 1,
-                        "topP": 1,
-                        "maxOutputTokens": 2048,
-                        "responseMimeType": "text/plain"
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt}
+                        ]
                     }
+                ],
+                "generationConfig": {
+                    "temperature": 0.5,
+                    "topK": 1,
+                    "topP": 1,
+                    "maxOutputTokens": 2048,
+                    "responseMimeType": "text/plain"
                 }
+            }
 
-                headers = {
-                    'Content-Type': 'application/json',
-                }
-                
-                # Tentar a chamada da API com backoff exponencial
-                max_retries = 5
-                base_delay = 1.0
-                for i in range(max_retries):
-                    response = requests.post(url, headers=headers, data=json.dumps(payload))
-                    if response.status_code == 200:
-                        break
-                    elif response.status_code == 429 and i < max_retries - 1:
-                        delay = base_delay * (2 ** i)
-                        st.warning(f"Limite de taxa atingido. Tentando novamente em {delay:.1f} segundos...")
-                        time.sleep(delay)
-                    else:
-                        response.raise_for_status()
-                
+            headers = {'Content-Type': 'application/json'}
+            
+            max_retries = 5
+            base_delay = 1.0
+            for i in range(max_retries):
+                response = requests.post(url, headers=headers, data=json.dumps(payload))
                 if response.status_code == 200:
-                    result = response.json()
-                    if result and 'candidates' in result and len(result['candidates']) > 0 and 'content' in result['candidates'][0] and 'parts' in result['candidates'][0]['content'] and len(result['candidates'][0]['content']['parts']) > 0:
-                        analysis = result['candidates'][0]['content']['parts'][0]['text']
-                        ai_analysis_dialog(analysis)
-                    else:
-                        st.error("A I.A. não conseguiu gerar uma resposta válida. Por favor, tente novamente com dados diferentes ou ajuste o prompt.")
+                    break
+                elif response.status_code == 429 and i < max_retries - 1:
+                    delay = base_delay * (2 ** i)
+                    st.warning(f"Limite de taxa atingido. Tentando novamente em {delay:.1f} segundos...")
+                    time.sleep(delay)
                 else:
-                    st.error(f"Erro ao se comunicar com a API da I.A.: {response.status_code} - {response.text}. Tente novamente mais tarde.")
+                    response.raise_for_status()
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result and 'candidates' in result and len(result['candidates']) > 0 and 'content' in result['candidates'][0] and 'parts' in result['candidates'][0]['content'] and len(result['candidates'][0]['content']['parts']) > 0:
+                    analysis = result['candidates'][0]['content']['parts'][0]['text']
+                    return analysis
+                else:
+                    st.error("A I.A. não conseguiu gerar uma resposta válida. Por favor, tente novamente com dados diferentes ou ajuste o prompt.")
+            else:
+                st.error(f"Erro ao se comunicar com a API da I.A.: {response.status_code} - {response.text}. Tente novamente mais tarde.")
 
         except requests.exceptions.RequestException as e:
             st.error(f"Erro de conexão com a API da I.A.: {e}")
         except Exception as e:
             st.error(f"Ocorreu um erro inesperado: {e}")
+    return None
+
+# --- DEFINIÇÃO DO DIALOG (POP-UP) ---
+@st.dialog("Análise de Viabilidade com I.A.")
+def ai_analysis_dialog():
+    if "ai_analysis" in st.session_state:
+        st.info(st.session_state.ai_analysis)
+    else:
+        st.warning("Não há análise para ser exibida.")
+
+@st.dialog("Adicionar Chave da API")
+def api_key_dialog():
+    st.write("Para usar a análise de I.A., por favor, insira sua chave da API do Google Gemini.")
+    st.markdown("Se você não tem uma, pode obter uma [aqui](https://makersuite.google.com/app/apikey).")
+    
+    with st.form("api_key_form"):
+        api_key = st.text_input("Chave da API", type="password")
+        if st.form_submit_button("Salvar e Gerar Análise"):
+            if api_key:
+                st.session_state.gemini_api_key = api_key
+                st.rerun()
+            else:
+                st.error("Por favor, insira uma chave da API.")
+
+# Adiciona o botão de análise com IA
+if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
+    if "gemini_api_key" not in st.session_state or not st.session_state.gemini_api_key:
+        api_key_dialog()
+    else:
+        # Tenta gerar a análise
+        analysis_text = generate_ai_analysis()
+        if analysis_text:
+            st.session_state.ai_analysis = analysis_text
+            ai_analysis_dialog()
 
 # Botão de download do relatório PDF
 if st.button("Gerar e Baixar Relatório PDF", type="primary"):
@@ -223,3 +242,7 @@ if st.button("Gerar e Baixar Relatório PDF", type="primary"):
             file_name=f"Relatorio_{info['nome']}.pdf",
             mime="application/pdf"
         )
+
+# Para reabrir o diálogo com a análise, caso o usuário feche
+if "ai_analysis" in st.session_state and st.button("Reexibir Análise de I.A."):
+    ai_analysis_dialog()
