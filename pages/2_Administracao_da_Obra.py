@@ -12,17 +12,23 @@ from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 
 st.set_page_config(page_title="Administração da Obra", layout="wide", page_icon="📝")
 
-# Injeta CSS para esconder o menu automático
+# Injeta CSS para aumentar o tamanho da fonte da tabela AgGrid
 st.markdown("""
 <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+    /* Aumenta a fonte do cabeçalho da tabela */
+    .ag-theme-streamlit .ag-header-cell-text {
+        font-size: 18px !important;
+    }
+    /* Aumenta a fonte das células da tabela */
+    .ag-theme-streamlit .ag-cell {
+        font-size: 18px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 
 # Funcao de cartão de métrica profissional com design moderno
-def card_metric_pro(label, value, delta=None, icon_name="cash-coin"):
+def card_metric_pro(label, value, delta=None, icon_name="cash-coin", bg_color="linear-gradient(145deg, #f9f9f9, #ffffff)", text_color="#007bff"):
     st.markdown(f"""
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <div style="
@@ -30,7 +36,7 @@ def card_metric_pro(label, value, delta=None, icon_name="cash-coin"):
         border-radius: 12px;
         padding: 20px;
         text-align: center;
-        background: linear-gradient(145deg, #f9f9f9, #ffffff);
+        background: {bg_color};
         box-shadow: 5px 5px 15px rgba(0,0,0,0.05);
         transition: transform 0.3s ease;
     "
@@ -38,10 +44,10 @@ def card_metric_pro(label, value, delta=None, icon_name="cash-coin"):
     onmouseout="this.style.transform='scale(1)'"
     >
         <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
-            <i class="bi bi-{icon_name}" style="font-size: 1.5em; margin-right: 10px; color: #007bff;"></i>
+            <i class="bi bi-{icon_name}" style="font-size: 1.5em; margin-right: 10px; color: {text_color};"></i>
             <h3 style="margin: 0; color: #333; font-size: 1.2em;">{label}</h3>
         </div>
-        <p style="font-size: 2.5em; font-weight: bold; margin: 0; color: #007bff;">{value}</p>
+        <p style="font-size: 2.5em; font-weight: bold; margin: 0; color: {text_color};">{value}</p>
         {f'<p style="color: {"green" if delta and delta > 0 else "red"}; font-size: 1em;">{f"+{delta}%" if delta else ""}</p>' if delta is not None else ''}
     </div>
     """, unsafe_allow_html=True)
@@ -66,20 +72,22 @@ if 'duracao_obra' not in st.session_state:
 
 
 with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
-    st.markdown("---")
     st.subheader("Configuração dos Custos Indiretos da Obra")
-    st.markdown("Estes custos são calculados com base na duração do projeto.")
 
-    # Slider para a duracao da obra
-    st.session_state.duracao_obra = st.slider(
-        "Duração da Obra (meses):",
-        min_value=1,
-        max_value=60,
-        value=st.session_state.duracao_obra
-    )
+    col_slider, col_spacer = st.columns([0.6, 0.4])
+    with col_slider:
+        st.session_state.duracao_obra = st.slider(
+            "Duração da Obra (meses):",
+            min_value=1,
+            max_value=60,
+            value=st.session_state.duracao_obra
+        )
 
     # Prepara os dados para o AgGrid
     dados_tabela_obra = []
+    total_mensal = sum(st.session_state.custos_indiretos_obra.values())
+    custo_indireto_obra_total_recalculado = total_mensal * st.session_state.duracao_obra
+
     for item, valor_mensal in st.session_state.custos_indiretos_obra.items():
         dados_tabela_obra.append({
             "Item": item,
@@ -118,24 +126,25 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
     
     gridOptions = gb.build()
 
-    # Centraliza a tabela
-    _, col_tabela_obra, _ = st.columns([2,9,2])
+    col_tabela_obra, col_metricas_obra = st.columns([0.6, 0.4])
+
     with col_tabela_obra:
+        st.write("### Ajuste os Custos Mensais")
         grid_response = AgGrid(
             df_custos_obra,
             gridOptions=gridOptions,
             height=450,
-            width='200%',
+            width='100%',
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
             try_convert_numeric_dtypes=True,
             theme='streamlit'
         )
-
+    
     # Usa os dados editados
     edited_df_custos_obra = grid_response['data']
     
-    # Recalcula o total
+    # Recalcula o total a partir dos dados editados
     if not edited_df_custos_obra.empty:
         total_mensal = edited_df_custos_obra["Custo Mensal (R$)"].sum()
         custo_indireto_obra_total_recalculado = total_mensal * st.session_state.duracao_obra
@@ -145,30 +154,35 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
             row["Item"]: row["Custo Mensal (R$)"]
             for index, row in edited_df_custos_obra.iterrows()
         }
+        info['custos_indiretos_obra'] = st.session_state.custos_indiretos_obra
+        info['duracao_obra'] = st.session_state.duracao_obra
         
-        # Adiciona espaçamento vertical
-        st.write("<br>", unsafe_allow_html=True)
-        
-        # Centraliza o card de métricas
-        _, col_metrica_obra, _ = st.columns([2, 8, 2])
-        
-        with col_metrica_obra:
-            col_res1, col_res2, col_res3 = st.columns(3)
-            with col_res1:
-                card_metric_pro(
-                    label="Custo Mensal Total",
-                    value=f"R$ {fmt_br(total_mensal)}",
-                    icon_name="cash-coin"
-                )
-            with col_res2:
-                card_metric_pro(
-                    label="Duração da Obra (meses)",
-                    value=f"{st.session_state.duracao_obra}",
-                    icon_name="clock"
-                )
-            with col_res3:
-                card_metric_pro(
-                    label="Custo Indireto de Obra Total",
-                    value=f"R$ {fmt_br(custo_indireto_obra_total_recalculado)}",
-                    icon_name="building-fill-up"
-                )
+        with col_metricas_obra:
+            st.write("### Resumo")
+            st.write("<br>", unsafe_allow_html=True)
+
+            card_metric_pro(
+                label="Custo Mensal Total",
+                value=f"R$ {fmt_br(total_mensal)}",
+                icon_name="cash-coin",
+                bg_color="linear-gradient(145deg, #e6f2ff, #cce5ff)",
+                text_color="#0056b3"
+            )
+            st.write("<br>", unsafe_allow_html=True)
+            
+            card_metric_pro(
+                label="Duração da Obra (meses)",
+                value=f"{st.session_state.duracao_obra}",
+                icon_name="clock",
+                bg_color="linear-gradient(145deg, #f0fff0, #d9f7d9)",
+                text_color="#28a745"
+            )
+            st.write("<br>", unsafe_allow_html=True)
+
+            card_metric_pro(
+                label="Custo Indireto de Obra Total",
+                value=f"R$ {fmt_br(custo_indireto_obra_total_recalculado)}",
+                icon_name="building-fill-up",
+                bg_color="linear-gradient(145deg, #fff5e6, #ffe0b3)",
+                text_color="#ff7f00"
+            )
