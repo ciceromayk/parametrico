@@ -5,24 +5,18 @@ import json
 import os
 from datetime import datetime
 from weasyprint import HTML
-import locale
 
 # --- CONSTANTES GLOBAIS e outras funções ---
 
-# Define o locale para formatação de moeda brasileira
-try:
-    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-except locale.Error:
-    # Fallback para sistemas que não suportam 'pt_BR.UTF-8'
-    locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
-
-def fmt_br(value):
+def fmt_br(valor):
     """
-    Formata um valor numérico para a moeda brasileira (R$).
+    Formata um valor numérico para a moeda brasileira (R$) de forma independente do locale.
     """
-    if pd.isna(value):
-        return "R$ 0,00"
-    return locale.currency(value, grouping=True, symbol=None)
+    if pd.isna(valor):
+        return "0,00"
+    # Formata para duas casas decimais, adiciona separador de milhar e troca , por . e vice-versa
+    s = f"{valor:,.2f}"
+    return s.replace(",", "X").replace(".", ",").replace("X", ".")
 
 JSON_PATH = "projects.json"
 HISTORICO_DIRETO_PATH = "historico_direto.json"
