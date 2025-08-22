@@ -133,49 +133,56 @@ if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
     with st.spinner("Gerando análise com I.A...."):
         try:
             # Configuração do API do Gemini
-            API_KEY = "" # Esta variável é preenchida automaticamente pelo ambiente
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key={API_KEY}"
+            # Verifica se a chave da API está disponível no ambiente
+            API_KEY = ""
+            if 'GEMINI_API_KEY' in st.secrets:
+                API_KEY = st.secrets['GEMINI_API_KEY']
             
-            payload = {
-                "contents": [
-                    {
-                        "parts": [
-                            {"text": prompt}
-                        ]
-                    }
-                ],
-                "generationConfig": {
-                    "temperature": 0.5,
-                    "topK": 1,
-                    "topP": 1,
-                    "maxOutputTokens": 2048,
-                    "responseMimeType": "text/plain"
-                }
-            }
-
-            headers = {
-                'Content-Type': 'application/json',
-            }
-            
-            # Tentar a chamada da API com backoff exponencial
-            max_retries = 5
-            base_delay = 1.0
-            for i in range(max_retries):
-                response = requests.post(url, headers=headers, data=json.dumps(payload))
-                if response.status_code == 200:
-                    break
-                elif response.status_code == 429 and i < max_retries - 1:
-                    delay = base_delay * (2 ** i)
-                    st.warning(f"Limite de taxa atingido. Tentando novamente em {delay:.1f} segundos...")
-                    time.sleep(delay)
-                else:
-                    response.raise_for_status()
-            
-            if response.status_code != 200:
-                st.error("Erro ao se comunicar com a API da I.A. Tente novamente mais tarde.")
+            if not API_KEY:
+                st.error("Chave da API não encontrada. Por favor, adicione sua chave Gemini API na configuração do Streamlit (st.secrets).")
             else:
-                analysis = response.json()['candidates'][0]['content']['parts'][0]['text']
-                st.session_state.ai_analysis = analysis
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key={API_KEY}"
+                
+                payload = {
+                    "contents": [
+                        {
+                            "parts": [
+                                {"text": prompt}
+                            ]
+                        }
+                    ],
+                    "generationConfig": {
+                        "temperature": 0.5,
+                        "topK": 1,
+                        "topP": 1,
+                        "maxOutputTokens": 2048,
+                        "responseMimeType": "text/plain"
+                    }
+                }
+
+                headers = {
+                    'Content-Type': 'application/json',
+                }
+                
+                # Tentar a chamada da API com backoff exponencial
+                max_retries = 5
+                base_delay = 1.0
+                for i in range(max_retries):
+                    response = requests.post(url, headers=headers, data=json.dumps(payload))
+                    if response.status_code == 200:
+                        break
+                    elif response.status_code == 429 and i < max_retries - 1:
+                        delay = base_delay * (2 ** i)
+                        st.warning(f"Limite de taxa atingido. Tentando novamente em {delay:.1f} segundos...")
+                        time.sleep(delay)
+                    else:
+                        response.raise_for_status()
+                
+                if response.status_code != 200:
+                    st.error("Erro ao se comunicar com a API da I.A. Tente novamente mais tarde.")
+                else:
+                    analysis = response.json()['candidates'][0]['content']['parts'][0]['text']
+                    st.session_state.ai_analysis = analysis
 
         except requests.exceptions.RequestException as e:
             st.error(f"Erro de conexão com a API da I.A.: {e}")
