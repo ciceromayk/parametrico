@@ -114,21 +114,14 @@ if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
 
     prompt = f"""
     Aja como um analista de viabilidade de empreendimentos imobiliários sênior.
-    Sua tarefa é analisar os dados de um projeto e gerar um relatório detalhado e analítico, em português, com as seguintes seções:
-    1.  **Avaliação da Viabilidade Financeira**:
-        -   Inicie com um parágrafo que resume a saúde financeira do projeto. Baseie sua conclusão na Margem de Lucro Bruto, comparando-a com benchmarks de mercado (e.g., uma margem acima de 15% é geralmente considerada promissora).
-        -   Forneça uma análise aprofundada da Margem de Lucro e do Lucro Bruto, explicando o que esses números significam para a atratividade do investimento.
-    2.  **Análise Detalhada dos Custos**:
-        -   Analise a composição do Custo Total. Para cada tipo de custo (Custo Direto, Custo Indireto de Venda, Custo Indireto de Obra e Custo do Terreno), forneça o valor absoluto e a sua porcentagem em relação ao Custo Total.
-        -   Comente sobre a proporção de cada custo, identificando qual deles representa a maior fatia e como isso pode impactar o projeto. Por exemplo, um custo de terreno muito elevado pode ser um ponto de atenção.
-    3.  **Análise de Desempenho por Área**:
-        -   Calcule o custo por metro quadrado (m²) para o Custo Direto, o Custo Indireto e o Custo Total.
-        -   Interprete esses indicadores, comentando sobre o quão competitivos ou elevados eles são para o tipo de empreendimento.
-    4.  **Recomendações Estratégicas**:
-        -   Forneça uma lista de 3 a 5 recomendações estratégicas e acionáveis para melhorar a viabilidade do projeto.
-        -   As recomendações devem ser específicas. Por exemplo, ao sugerir redução de custos, cite exemplos de onde a redução pode ocorrer (ex: otimização de projetos, negociação com fornecedores). Ao sugerir aumento de receita, cite o preço médio de venda.
-    5.  **Conclusão e Perspectivas Futuras**:
-        -   Um parágrafo final que resume a análise e oferece uma perspectiva sobre os próximos passos, como aprofundar estudos de mercado ou iniciar a fase de detalhamento.
+    Sua tarefa é analisar os dados de um projeto e gerar um relatório detalhado e analítico, em português.
+    
+    O relatório deve ter as seguintes seções:
+    1.  **Avaliação da Viabilidade Financeira**: Um parágrafo inicial que resume a saúde financeira do projeto. Compare a Margem de Lucro Bruto com benchmarks de mercado (e.g., uma margem acima de 15% é geralmente considerada promissora) e comente sobre o Lucro Bruto e a atratividade do investimento.
+    2.  **Análise Detalhada dos Custos**: Analise a composição do Custo Total. Apresente os valores absolutos e as porcentagens de cada tipo de custo (Custo Direto, Custo Indireto de Venda, Custo Indireto de Obra e Custo do Terreno). Comente sobre a proporção de cada custo e identifique qual deles representa a maior fatia e o impacto que isso pode ter.
+    3.  **Análise de Desempenho por Área**: Forneça e interprete os indicadores de custo por metro quadrado (m²) para o Custo Direto, o Custo Indireto e o Custo Total. Comente sobre o quão competitivos ou elevados esses custos são para o tipo de empreendimento.
+    4.  **Recomendações Estratégicas**: Forneça uma lista de 3 a 5 recomendações acionáveis para melhorar a viabilidade do projeto. As recomendações devem ser específicas. Por exemplo, cite exemplos de onde a redução de custos pode ocorrer ou como a receita pode ser aumentada.
+    5.  **Conclusão e Próximos Passos**: Um parágrafo final que resume a análise e oferece uma perspectiva sobre os próximos passos, como aprofundar estudos de mercado ou iniciar a fase de detalhamento.
 
     Abaixo estão os dados do projeto. Utilize-os para a análise. Os valores estão em Reais (R$).
     
