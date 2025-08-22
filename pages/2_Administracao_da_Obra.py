@@ -119,7 +119,7 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
     gridOptions = gb.build()
 
     # Centraliza a tabela
-    _, col_tabela_obra, _ = st.columns([8, 2, 3])
+    _, col_tabela_obra, _ = st.columns([2,9,2])
     with col_tabela_obra:
         grid_response = AgGrid(
             df_custos_obra,
