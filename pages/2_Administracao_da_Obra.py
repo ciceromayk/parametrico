@@ -1,57 +1,9 @@
-# pages/2_Administracao_da_Obra.py
+# pages/3_Resultados_e_Indicadores.py
 import streamlit as st
 import pandas as pd
-from utils import (
-    fmt_br, render_metric_card, render_sidebar, DEFAULT_CUSTOS_INDIRETOS_OBRA,
-    DEFAULT_CUSTOS_INDIRETOS, ETAPAS_OBRA, DEFAULT_PAVIMENTO,
-    list_projects, save_project, load_project, delete_project,
-    JSON_PATH, HISTORICO_DIRETO_PATH, HISTORICO_INDIRETO_PATH,
-    load_json, save_to_historico
-)
-from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
+from utils import *
 
-st.set_page_config(page_title="Administração da Obra", layout="wide", page_icon="📝")
-
-# Injeta CSS para aumentar o tamanho da fonte da tabela AgGrid
-st.markdown("""
-<style>
-    /* Aumenta a fonte do cabeçalho da tabela */
-    .ag-theme-streamlit .ag-header-cell-text {
-        font-size: 18px !important;
-    }
-    /* Aumenta a fonte das células da tabela */
-    .ag-theme-streamlit .ag-cell {
-        font-size: 18px !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-
-# Funcao de cartão de métrica profissional com design moderno
-def card_metric_pro(label, value, delta=None, icon_name="cash-coin", bg_color="linear-gradient(145deg, #f9f9f9, #ffffff)", text_color="#007bff"):
-    st.markdown(f"""
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <div style="
-        border: 1px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 15px; /* Reduz o padding para diminuir a altura */
-        text-align: center;
-        background: {bg_color};
-        box-shadow: 5px 5px 15px rgba(0,0,0,0.05);
-        transition: transform 0.3s ease;
-    "
-    onmouseover="this.style.transform='scale(1.03)'"
-    onmouseout="this.style.transform='scale(1)'"
-    >
-        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
-            <i class="bi bi-{icon_name}" style="font-size: 1.2em; margin-right: 8px; color: {text_color};"></i>
-            <h3 style="margin: 0; color: #333; font-size: 1.0em;">{label}</h3>
-        </div>
-        <p style="font-size: 1.8em; font-weight: bold; margin: 0; color: {text_color};">{value}</p>
-        {f'<p style="color: {"green" if delta and delta > 0 else "red"}; font-size: 0.8em;">{f"+{delta}%" if delta else ""}</p>' if delta is not None else ''}
-    </div>
-    """, unsafe_allow_html=True)
-
+st.set_page_config(page_title="Resultados e Indicadores", layout="wide")
 
 if "projeto_info" not in st.session_state:
     st.error("Nenhum projeto carregado. Por favor, selecione um projeto na página inicial.")
@@ -59,126 +11,92 @@ if "projeto_info" not in st.session_state:
         st.switch_page("Início.py")
     st.stop()
 
-render_sidebar(form_key="sidebar_administracao_obra")
+# Passamos uma chave única para a sidebar para evitar erros de chave duplicada
+render_sidebar(form_key="sidebar_resultados")
 
 info = st.session_state.projeto_info
-st.title("📝 Administração da Obra")
-st.subheader("Custos Mensais e Duração do Projeto")
+st.title("📈 Resultados e Indicadores Chave")
 
-if 'custos_indiretos_obra' not in st.session_state:
-    st.session_state.custos_indiretos_obra = info.get('custos_indiretos_obra', {k: v for k, v in DEFAULT_CUSTOS_INDIRETOS_OBRA.items()})
-if 'duracao_obra' not in st.session_state:
-    st.session_state.duracao_obra = info.get('duracao_obra', 12)
+# --- CÁLCULOS GERAIS ---
+pavimentos_df = pd.DataFrame(info.get('pavimentos', []))
+custos_config = info.get('custos_config', {})
+custo_direto_total, area_construida_total = 0, 0
+if not pavimentos_df.empty:
+    custo_area_privativa = custos_config.get('custo_area_privativa', 4500.0)
+    pavimentos_df["area_total"] = pavimentos_df["area"] * pavimentos_df["rep"]
+    pavimentos_df["area_eq"] = pavimentos_df["area_total"] * pavimentos_df["coef"]
+    pavimentos_df["area_constr"] = pavimentos_df.apply(lambda r: r["area_total"] if r["constr"] else 0.0, axis=1)
+    pavimentos_df["custo_direto"] = pavimentos_df["area_eq"] * custo_area_privativa
+    custo_direto_total = pavimentos_df["custo_direto"].sum()
+    area_construida_total = pavimentos_df["area_constr"].sum()
 
+preco_medio_venda_m2 = custos_config.get('preco_medio_venda_m2', 10000.0)
+vgv_total = info.get('area_privativa', 0) * preco_medio_venda_m2
 
-with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
-    st.subheader("Configuração dos Custos Indiretos da Obra")
+custos_indiretos_percentuais = info.get('custos_indiretos_percentuais', {})
+custo_indireto_calculado = 0
+if custos_indiretos_percentuais:
+    for item, values in custos_indiretos_percentuais.items():
+        percentual = values.get('percentual', 0)
+        custo_indireto_calculado += vgv_total * (float(percentual) / 100)
 
-    col_slider, col_spacer = st.columns([0.6, 0.4])
-    with col_slider:
-        st.session_state.duracao_obra = st.slider(
-            "Duração da Obra (meses):",
-            min_value=1,
-            max_value=60,
-            value=st.session_state.duracao_obra
+custo_terreno_total = info.get('area_terreno', 0) * custos_config.get('custo_terreno_m2', 2500.0)
+
+# Obter e calcular o custo indireto de obra de forma segura, usando valores padrão se não existirem
+custo_indireto_obra_total = 0
+custos_obra_mensais = info.get('custos_obra_mensais', {item: {'custo_mensal': valor, 'meses': 12} for item, valor in DEFAULT_CUSTOS_INDIRETOS_OBRA.items()})
+duracao_obra = info.get('duracao_obra', 12)
+
+for item, valores in custos_obra_mensais.items():
+    custo_indireto_obra_total += valores['custo_mensal'] * valores['meses']
+
+# TOTAIS - incluindo os custos indiretos de obra
+valor_total_despesas = custo_direto_total + custo_indireto_calculado + custo_terreno_total + custo_indireto_obra_total
+lucratividade_valor = vgv_total - valor_total_despesas
+lucratividade_percentual = (lucratividade_valor / vgv_total) * 100 if vgv_total > 0 else 0
+
+# --- APRESENTAÇÃO DOS RESULTADOS ---
+with st.container(border=True):
+    cores = ["#00829d", "#6a42c1", "#3c763d", "#a94442", "#fd7e14", "#20c997", "#31708f", "#8a6d3b"]
+    st.subheader("Resultados Financeiros")
+    res_cols = st.columns(4)
+    res_cols[0].markdown(render_metric_card("VGV Total", f"R$ {fmt_br(vgv_total)}", cores[0]), unsafe_allow_html=True)
+    res_cols[1].markdown(render_metric_card("Custo Total", f"R$ {fmt_br(valor_total_despesas)}", cores[1]), unsafe_allow_html=True)
+    res_cols[2].markdown(render_metric_card("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}", cores[2]), unsafe_allow_html=True)
+    res_cols[3].markdown(render_metric_card("Margem de Lucro", f"{lucratividade_percentual:.2f}%", cores[3]), unsafe_allow_html=True)
+    st.divider()
+    st.subheader("Composição do Custo Total")
+    comp_cols = st.columns(4) # Alterado para 4 colunas
+    if valor_total_despesas > 0:
+        p_direto = (custo_direto_total / valor_total_despesas * 100)
+        p_indireto_venda = (custo_indireto_calculado / valor_total_despesas * 100)
+        p_indireto_obra = (custo_indireto_obra_total / valor_total_despesas * 100)
+        p_terreno = (custo_terreno_total / valor_total_despesas * 100)
+
+        comp_cols[0].markdown(render_metric_card(f"Custo Direto ({p_direto:.2f}%)", f"R$ {fmt_br(custo_direto_total)}", cores[6]), unsafe_allow_html=True)
+        comp_cols[1].markdown(render_metric_card(f"Indiretos Venda ({p_indireto_venda:.2f}%)", f"R$ {fmt_br(custo_indireto_calculado)}", cores[7]), unsafe_allow_html=True)
+        comp_cols[2].markdown(render_metric_card(f"Indiretos Obra ({p_indireto_obra:.2f}%)", f"R$ {fmt_br(custo_indireto_obra_total)}", "#ff7f0e"), unsafe_allow_html=True) # Novo card
+        comp_cols[3].markdown(render_metric_card(f"Custo do Terreno ({p_terreno:.2f}%)", f"R$ {fmt_br(custo_terreno_total)}", cores[1]), unsafe_allow_html=True)
+    st.divider()
+    st.subheader("Indicadores por Área Construída")
+    ind_cols = st.columns(4)
+    ind_cols[0].markdown(render_metric_card("Terreno / Custo Total", f"{(custo_terreno_total / valor_total_despesas * 100 if valor_total_despesas > 0 else 0):.2f}%", cores[4]), unsafe_allow_html=True)
+    ind_cols[1].markdown(render_metric_card("Custo Direto / m²", f"R$ {fmt_br(custo_direto_total / area_construida_total if area_construida_total > 0 else 0)}", cores[5]), unsafe_allow_html=True)
+    ind_cols[2].markdown(render_metric_card("Custo Indireto / m²", f"R$ {fmt_br((custo_indireto_calculado + custo_indireto_obra_total) / area_construida_total if area_construida_total > 0 else 0)}", cores[6]), unsafe_allow_html=True)
+    ind_cols[3].markdown(render_metric_card("Custo Total / m²", f"R$ {fmt_br(valor_total_despesas / area_construida_total if area_construida_total > 0 else 0)}", cores[7]), unsafe_allow_html=True)
+
+st.divider()
+
+if st.button("Gerar e Baixar Relatório PDF", type="primary"):
+    with st.spinner("Gerando seu relatório..."):
+        pdf_data = generate_pdf_report(
+            info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
+            custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total,
+            custos_config, custos_indiretos_percentuais, pavimentos_df, custo_indireto_obra_total
         )
-
-    # Prepara os dados para o AgGrid
-    dados_tabela_obra = []
-    total_mensal = sum(st.session_state.custos_indiretos_obra.values())
-    
-    for item, valor_mensal in st.session_state.custos_indiretos_obra.items():
-        dados_tabela_obra.append({
-            "Item": item,
-            "Custo Mensal (R$)": valor_mensal,
-            "Custo Total (R$)": valor_mensal * st.session_state.duracao_obra # Cálculo direto
-        })
-    
-    df_custos_obra = pd.DataFrame(dados_tabela_obra)
-
-    # Configura o AgGrid
-    gb = GridOptionsBuilder.from_dataframe(df_custos_obra)
-
-    jscode_formatador_moeda = JsCode("""
-        function(params) {
-            if (params.value === null || params.value === undefined) { return ''; }
-            return 'R$ ' + params.value.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        }
-    """)
-    
-    gb.configure_column("Item", headerName="Item", flex=5, resizable=True)
-    gb.configure_column("Custo Mensal (R$)",
-        headerName="Custo Mensal (R$)",
-        editable=True,
-        valueFormatter=jscode_formatador_moeda,
-        flex=1,
-        resizable=True,
-        type=["numericColumn", "numberColumnFilter", "customNumericFormat"]
-    )
-    gb.configure_column("Custo Total (R$)",
-        headerName="Custo Total (R$)",
-        valueFormatter=jscode_formatador_moeda,
-        flex=1,
-        resizable=False,
-        type=["numericColumn", "numberColumnFilter"]
-    )
-    
-    gridOptions = gb.build()
-
-    col_tabela_obra, col_metricas_obra = st.columns([0.6, 0.4])
-
-    with col_tabela_obra:
-        st.markdown("##### Ajuste os Custos Mensais")
-        grid_response = AgGrid(
-            df_custos_obra,
-            gridOptions=gridOptions,
-            height=450,
-            width='100%',
-            update_mode='MODEL_CHANGED',
-            allow_unsafe_jscode=True,
-            try_convert_numeric_dtypes=True,
-            theme='streamlit'
+        st.download_button(
+            label="Relatório Concluído! Clique aqui para baixar.",
+            data=pdf_data,
+            file_name=f"Relatorio_{info['nome']}.pdf",
+            mime="application/pdf"
         )
-    
-    # Usa os dados editados
-    edited_df_custos_obra = pd.DataFrame(grid_response['data'])
-    
-    # Recalcula o total a partir dos dados editados
-    if not edited_df_custos_obra.empty:
-        total_mensal = edited_df_custos_obra["Custo Mensal (R$)"].sum()
-        custo_indireto_obra_total_recalculado = edited_df_custos_obra["Custo Total (R$)"].sum()
-        
-        # Salva o estado
-        st.session_state.custos_indiretos_obra = {
-            row["Item"]: row["Custo Mensal (R$)"]
-            for index, row in edited_df_custos_obra.iterrows()
-        }
-        info['custos_indiretos_obra'] = st.session_state.custos_indiretos_obra
-        info['duracao_obra'] = st.session_state.duracao_obra
-        
-        with col_metricas_obra:
-            st.subheader("Resumo")
-
-            card_metric_pro(
-                label="Custo Mensal Total",
-                value=f"R$ {fmt_br(total_mensal)}",
-                icon_name="cash-coin",
-                bg_color="linear-gradient(145deg, #e6f2ff, #cce5ff)",
-                text_color="#0056b3"
-            )
-            
-            card_metric_pro(
-                label="Duração da Obra (meses)",
-                value=f"{st.session_state.duracao_obra}",
-                icon_name="clock",
-                bg_color="linear-gradient(145deg, #f0fff0, #d9f7d9)",
-                text_color="#28a745"
-            )
-            
-            card_metric_pro(
-                label="Custo Indireto de Obra Total",
-                value=f"R$ {fmt_br(custo_indireto_obra_total_recalculado)}",
-                icon_name="building-fill-up",
-                bg_color="linear-gradient(145deg, #fff5e6, #ffe0b3)",
-                text_color="#ff7f00"
-            )
