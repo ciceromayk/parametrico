@@ -75,32 +75,34 @@ custos_config = info.get('custos_config', {})
 preco_medio_venda_m2 = custos_config.get('preco_medio_venda_m2', 10000.0)
 vgv_total = info.get('area_privativa', 0) * preco_medio_venda_m2
 
+# Inicialização do session_state
+if 'custos_indiretos_percentuais' not in st.session_state:
+    custos_salvos = info.get('custos_indiretos_percentuais', {})
+    
+    if custos_salvos and isinstance(list(custos_salvos.values())[0], (int, float)):
+        st.session_state.custos_indiretos_percentuais = {item: {"percentual": val, "fonte": "Manual"} for item, val in custos_salvos.items()}
+    else:
+        st.session_state.custos_indiretos_percentuais = {item: custos_salvos.get(item, {"percentual": vals[1], "fonte": "Manual"}) for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
+
+# Preparar os Dados para o AgGrid
+dados_tabela = []
+for item, (min_val, default_val, max_val) in DEFAULT_CUSTOS_INDIRETOS.items():
+    percentual_atual = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val})['percentual']
+    custo_calculado = vgv_total * (percentual_atual / 100)
+    
+    dados_tabela.append({
+        "Item": item,
+        "Percentual (%)": percentual_atual,
+        "Custo (R$)": custo_calculado,
+    })
+
+df = pd.DataFrame(dados_tabela)
+custo_indireto_calculado = df["Custo (R$)"].sum()
+
+
 # Bloco principal com a nova tabela AgGrid e Gráficos
 with st.expander("Análise Detalhada de Custos Indiretos", expanded=True):
     st.subheader("Configuração e Análise de Custos Indiretos")
-
-    # Inicialização do session_state
-    if 'custos_indiretos_percentuais' not in st.session_state:
-        custos_salvos = info.get('custos_indiretos_percentuais', {})
-        
-        if custos_salvos and isinstance(list(custos_salvos.values())[0], (int, float)):
-            st.session_state.custos_indiretos_percentuais = {item: {"percentual": val, "fonte": "Manual"} for item, val in custos_salvos.items()}
-        else:
-            st.session_state.custos_indiretos_percentuais = {item: custos_salvos.get(item, {"percentual": vals[1], "fonte": "Manual"}) for item, vals in DEFAULT_CUSTOS_INDIRETOS.items()}
-
-    # Preparar os Dados para o AgGrid e Gráficos
-    dados_tabela = []
-    for item, (min_val, default_val, max_val) in DEFAULT_CUSTOS_INDIRETOS.items():
-        percentual_atual = st.session_state.custos_indiretos_percentuais.get(item, {"percentual": default_val})['percentual']
-        custo_calculado = vgv_total * (percentual_atual / 100)
-        
-        dados_tabela.append({
-            "Item": item,
-            "Percentual (%)": percentual_atual,
-            "Custo (R$)": custo_calculado,
-        })
-
-    df = pd.DataFrame(dados_tabela)
 
     # Configurar o AgGrid
     gb = GridOptionsBuilder.from_dataframe(df)
