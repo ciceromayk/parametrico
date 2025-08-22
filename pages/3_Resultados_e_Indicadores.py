@@ -8,6 +8,18 @@ import time
 
 st.set_page_config(page_title="Resultados e Indicadores", layout="wide")
 
+# CSS para configurar a largura do dialog
+st.markdown("""
+<style>
+    /* Essa classe é usada pelo Streamlit para o contêiner do dialog. */
+    /* Você pode precisar inspecionar o elemento para verificar se a classe mudou em versões futuras do Streamlit. */
+    .st-emotion-cache-1r651z {
+        max-width: 1600px;  /* Largura máxima do pop-up */
+        width: 90%;       /* Largura responsiva para telas menores */
+    }
+</style>
+""", unsafe_allow_html=True)
+
 if "projeto_info" not in st.session_state:
     st.error("Nenhum projeto carregado. Por favor, selecione um projeto na página inicial.")
     if st.button("Voltar para a seleção de projetos"):
