@@ -183,8 +183,8 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     def create_html_card(title, value, color):
         return f"""
         <td style="background-color: {color}; color: white; border-radius: 8px; padding: 15px; text-align: center; width: 25%;">
-            <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">{title}</div>
-            <div style="font-size: 16px; font-weight: bold;">{value}</div>
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">{title}</div>
+            <div style="font-size: 14px; font-weight: bold;">{value}</div>
         </td>
         """
     
@@ -347,10 +347,10 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             table.data-table th {{
                 background-color: #f2f2f2;
                 font-weight: bold;
-                font-size: 14px;
+                font-size: 10px;
             }}
             table.data-table td {{
-                font-size: 12px;
+                font-size: 10px;
             }}
             table.data-table tbody tr:nth-child(odd) {{
                 background-color: #f9f9f9;
