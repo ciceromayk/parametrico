@@ -14,7 +14,7 @@ st.markdown("""
     /* Essa classe é usada pelo Streamlit para o contêiner do dialog. */
     /* Você pode precisar inspecionar o elemento para verificar se a classe mudou em versões futuras do Streamlit. */
     .st-emotion-cache-1r651z {
-        max-width: 1600px;  /* Largura máxima do pop-up */
+        max-width: 800px;  /* Largura máxima do pop-up */
         width: 90%;       /* Largura responsiva para telas menores */
     }
 </style>
@@ -125,13 +125,20 @@ def generate_ai_analysis():
         }
     }
 
+    # Dados de benchmark da pesquisa na web
+    benchmark_data = {
+        "profit_margin_benchmark": "Pesquisas de 2024/2025 indicam que a rentabilidade de empreendimentos imobiliários no Brasil pode chegar a 19%, com valores específicos como 17,2% em São Paulo. Uma margem de lucro bruta acima de 15% é considerada promissora.",
+        "cost_per_sqm_benchmark": "Segundo dados do SINAPI (IBGE), o custo nacional por metro quadrado em dezembro de 2024 foi de R$ 1.790,66, com valores regionais que variam, por exemplo, R$ 1.847,11 no Sudeste em 2025.",
+        "cost_proportions_info": "A composição de custos de um projeto é um indicador chave de sua saúde financeira. O custo do terreno, por exemplo, tem se valorizado e pode impactar significativamente o valor final do imóvel."
+    }
+
     prompt = f"""
     Act as a senior real estate development viability analyst. Your task is to analyze a project's data and generate a detailed and analytical report in Portuguese.
 
     The report should have the following sections:
-    1.  **Avaliação da Viabilidade Financeira**: Start with a paragraph summarizing the financial health of the project. Base your conclusion on the Gross Profit Margin, comparing it with market benchmarks (e.g., a margin above 15% is generally considered promising) and comment on the Gross Profit and the attractiveness of the investment.
-    2.  **Análise Detalhada dos Custos**: Analyze the composition of the Total Cost. Present the absolute values and percentages of each cost type (Direct Cost, Indirect Sales Cost, Indirect Construction Cost, and Land Cost). Comment on the proportion of each cost, identifying which one represents the largest share and how this might impact the project.
-    3.  **Análise de Desempenho por Área**: Provide and interpret the cost per square meter (m²) indicators for Direct Cost, Indirect Cost, and Total Cost. Comment on how competitive or high these costs are for the type of development.
+    1.  **Avaliação da Viabilidade Financeira**: Start with a paragraph summarizing the financial health of the project. Compare the Gross Profit Margin with the following market benchmarks: "{benchmark_data['profit_margin_benchmark']}". Explain the implications of the project's Gross Profit and its overall attractiveness.
+    2.  **Análise Detalhada dos Custos**: Analyze the composition of the Total Cost. Present the absolute values and percentages of each cost type (Direct Cost, Indirect Sales Cost, Indirect Construction Cost, and Land Cost). Use the following context to enrich your analysis: "{benchmark_data['cost_proportions_info']}".
+    3.  **Análise de Desempenho por Área**: Provide and interpret the cost per square meter (m²) indicators for Direct Cost, Indirect Cost, and Total Cost. Compare these costs with the following market benchmark: "{benchmark_data['cost_per_sqm_benchmark']}".
     4.  **Recomendações Estratégicas**: Provide a list of 3 to 5 actionable strategic recommendations to improve the project's viability. The recommendations should be specific. For example, cite examples of where cost reduction can occur or how revenue can be increased.
     5.  **Conclusão e Próximos Passos**: A final paragraph that summarizes the analysis and offers a perspective on the next steps, such as conducting deeper market studies or starting the detailing phase.
 
