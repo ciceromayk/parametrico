@@ -325,6 +325,10 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             table.data-table th {{
                 background-color: #f2f2f2;
                 font-weight: bold;
+                font-size: 14px; /* Tamanho da fonte do cabeçalho da tabela */
+            }}
+            table.data-table td {{
+                font-size: 12px; /* Tamanho da fonte do corpo da tabela */
             }}
             table.data-table tbody tr:nth-child(odd) {{
                 background-color: #f9f9f9;
