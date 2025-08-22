@@ -69,12 +69,14 @@ if 'custos_indiretos_obra' not in st.session_state:
     st.session_state.custos_indiretos_obra = info.get('custos_indiretos_obra', {k: v for k, v in DEFAULT_CUSTOS_INDIRETOS_OBRA.items()})
 if 'duracao_obra' not in st.session_state:
     st.session_state.duracao_obra = info.get('duracao_obra', 12)
+if 'custos_obra_mensais' not in st.session_state:
+    st.session_state.custos_obra_mensais = info.get('custos_obra_mensais', {item: {'custo_mensal': valor, 'meses': st.session_state.duracao_obra} for item, valor in DEFAULT_CUSTOS_INDIRETOS_OBRA.items()})
 
 
 with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
     st.subheader("Configuração dos Custos Indiretos da Obra")
 
-    col_slider, col_spacer = st.columns([1, 0.4])
+    col_slider, col_btn_apply = st.columns([0.6, 0.4])
     with col_slider:
         st.session_state.duracao_obra = st.slider(
             "Duração da Obra (meses):",
@@ -85,20 +87,19 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
 
     # Prepara os dados para o AgGrid
     dados_tabela_obra = []
-    total_mensal = sum(st.session_state.custos_indiretos_obra.values())
-    custo_indireto_obra_total_recalculado = total_mensal * st.session_state.duracao_obra
-
-    for item, valor_mensal in st.session_state.custos_indiretos_obra.items():
+    for item, valores in st.session_state.custos_obra_mensais.items():
         dados_tabela_obra.append({
             "Item": item,
-            "Custo Mensal (R$)": valor_mensal,
-            "Custo Total (R$)": valor_mensal * st.session_state.duracao_obra
+            "Custo Mensal (R$)": valores['custo_mensal'],
+            "Meses": valores['meses'],
+            "Custo Total (R$)": valores['custo_mensal'] * valores['meses']
         })
     
     df_custos_obra = pd.DataFrame(dados_tabela_obra)
 
     # Configura o AgGrid
     gb = GridOptionsBuilder.from_dataframe(df_custos_obra)
+    gb.configure_selection(selection_mode="multiple", use_checkbox=True)
 
     jscode_formatador_moeda = JsCode("""
         function(params) {
@@ -107,14 +108,21 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
         }
     """)
     
-    gb.configure_column("Item", headerName="Item", flex=5, resizable=True)
+    gb.configure_column("Item", headerName="Item", flex=3, resizable=True)
     gb.configure_column("Custo Mensal (R$)",
         headerName="Custo Mensal (R$)",
         editable=True,
         valueFormatter=jscode_formatador_moeda,
         flex=1,
-        resizable=False,
+        resizable=True,
         type=["numericColumn", "numberColumnFilter", "customNumericFormat"]
+    )
+    gb.configure_column("Meses",
+        headerName="Meses",
+        editable=True,
+        flex=1,
+        resizable=True,
+        type=["numericColumn", "numberColumnFilter"]
     )
     gb.configure_column("Custo Total (R$)",
         headerName="Custo Total (R$)",
@@ -129,12 +137,12 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
     col_tabela_obra, col_metricas_obra = st.columns([0.6, 0.4])
 
     with col_tabela_obra:
-        st.write("### Ajuste os Custos Mensais")
+        st.markdown("##### Ajuste os Custos e Meses")
         grid_response = AgGrid(
             df_custos_obra,
             gridOptions=gridOptions,
             height=450,
-            width='80%',
+            width='100%',
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
             try_convert_numeric_dtypes=True,
@@ -142,23 +150,34 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
         )
     
     # Usa os dados editados
-    edited_df_custos_obra = grid_response['data']
+    edited_df_custos_obra = pd.DataFrame(grid_response['data'])
+    
+    with col_btn_apply:
+        st.markdown("##### Ações")
+        st.write("") # Espaçamento para alinhar com o botão
+        if st.button(f"Aplicar {st.session_state.duracao_obra} meses aos selecionados", use_container_width=True, type="secondary"):
+            if grid_response['selected_rows']:
+                for row_data in grid_response['selected_rows']:
+                    item = row_data['Item']
+                    st.session_state.custos_obra_mensais[item]['meses'] = st.session_state.duracao_obra
+                st.rerun()
+
     
     # Recalcula o total a partir dos dados editados
     if not edited_df_custos_obra.empty:
         total_mensal = edited_df_custos_obra["Custo Mensal (R$)"].sum()
-        custo_indireto_obra_total_recalculado = total_mensal * st.session_state.duracao_obra
+        custo_indireto_obra_total_recalculado = edited_df_custos_obra["Custo Total (R$)"].sum()
         
         # Salva o estado
-        st.session_state.custos_indiretos_obra = {
-            row["Item"]: row["Custo Mensal (R$)"]
+        st.session_state.custos_obra_mensais = {
+            row["Item"]: {'custo_mensal': row["Custo Mensal (R$)"], 'meses': row["Meses"]}
             for index, row in edited_df_custos_obra.iterrows()
         }
-        info['custos_indiretos_obra'] = st.session_state.custos_indiretos_obra
+        info['custos_obra_mensais'] = st.session_state.custos_obra_mensais
         info['duracao_obra'] = st.session_state.duracao_obra
         
         with col_metricas_obra:
-            st.subheader("Resumo") # Alterado para subheader
+            st.subheader("Resumo")
 
             card_metric_pro(
                 label="Custo Mensal Total",
