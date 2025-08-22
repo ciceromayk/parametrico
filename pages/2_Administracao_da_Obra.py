@@ -76,7 +76,7 @@ if 'custos_obra_mensais' not in st.session_state:
 with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
     st.subheader("Configuração dos Custos Indiretos da Obra")
 
-    col_slider, col_btn_apply = st.columns([0.6, 0.4])
+    col_slider, col_spacer = st.columns([0.6, 0.4])
     with col_slider:
         st.session_state.duracao_obra = st.slider(
             "Duração da Obra (meses):",
@@ -132,6 +132,8 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
         type=["numericColumn", "numberColumnFilter"]
     )
     
+    # Adiciona uma lógica para selecionar todas as linhas por padrão
+    initial_selection = df_custos_obra.to_dict('records')
     gridOptions = gb.build()
 
     col_tabela_obra, col_metricas_obra = st.columns([0.6, 0.4])
@@ -146,22 +148,19 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
             try_convert_numeric_dtypes=True,
-            theme='streamlit'
+            theme='streamlit',
+            selected_rows=initial_selection, # Seleciona todas as linhas
         )
     
     # Usa os dados editados
     edited_df_custos_obra = pd.DataFrame(grid_response['data'])
     
-    with col_btn_apply:
-        st.markdown("##### Ações")
-        st.write("") # Espaçamento para alinhar com o botão
-        if st.button(f"Aplicar {st.session_state.duracao_obra} meses aos selecionados", use_container_width=True, type="secondary"):
-            if grid_response['selected_rows']:
-                for row_data in grid_response['selected_rows']:
-                    item = row_data['Item']
-                    st.session_state.custos_obra_mensais[item]['meses'] = st.session_state.duracao_obra
-                st.rerun()
-
+    # Aplica a duração do slider nas linhas selecionadas
+    selected_rows = grid_response['selected_rows']
+    if selected_rows:
+        for row_data in selected_rows:
+            item = row_data['Item']
+            st.session_state.custos_obra_mensais[item]['meses'] = st.session_state.duracao_obra
     
     # Recalcula o total a partir dos dados editados
     if not edited_df_custos_obra.empty:
