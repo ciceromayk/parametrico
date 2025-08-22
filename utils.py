@@ -127,13 +127,19 @@ def handle_percentage_redistribution(session_key, constants_dict):
                 current[item]['percentual'] = max(min_val, min(new_percent, max_val))
     st.session_state[previous_key] = {k: v.copy() for k, v in current.items()}; st.rerun()
 
-
 def render_sidebar(form_key):
-    st.sidebar.title("Estudo de Viabilidade")
+    st.sidebar.title("Estudo de Viabilidade") # Título no topo da barra lateral
     st.sidebar.divider()
     
     # Criamos uma chave de formulário única para esta página
     form_key_unique = f"edit_form_sidebar_{form_key}"
+
+    st.sidebar.page_link("Início.py", label="Início")
+    st.sidebar.page_link("pages/1_Custos_Diretos.py", label="Custos Diretos")
+    st.sidebar.page_link("pages/2_Custos_Indiretos.py", label="Custos Indiretos")
+    st.sidebar.page_link("pages/3_Resultado.py", label="Resultados e Indicadores")
+
+    st.sidebar.divider()
 
     if "projeto_info" in st.session_state:
         info = st.session_state.projeto_info
@@ -169,6 +175,7 @@ def render_sidebar(form_key):
             for key in keys_to_delete:
                 if key in st.session_state: del st.session_state[key]
             st.switch_page("Início.py")
+
 
 # --- NOVA FUNÇÃO DE GERAÇÃO DE PDF ---
 def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
