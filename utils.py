@@ -415,11 +415,11 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width: 15%;">Nome</th>
-                    <th style="width: 15%;">Tipo</th>
+                    <th style="width: 10%;">Nome</th>
+                    <th style="width: 20%;">Tipo</th>
                     <th style="width: 5%; text-align: center;">Rep.</th>
                     <th style="width: 5%; text-align: right;">Coef.</th>
-                    <th style="width: 15%; text-align: right;">Área (m²)</th>
+                    <th style="width: 20%; text-align: right;">Área (m²)</th>
                     <th style="width: 20%; text-align: right;">Área Eq. Total (m²)</th>
                     <th style="width: 20%; text-align: right;">Área Constr. (m²)</th>
                 </tr>
