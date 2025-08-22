@@ -42,9 +42,9 @@ if custos_indiretos_percentuais:
 
 custo_terreno_total = info.get('area_terreno', 0) * custos_config.get('custo_terreno_m2', 2500.0)
 
-# Obter o custo indireto de obra da session_state
+# Obter o custo indireto de obra da session_state de forma segura
 custo_indireto_obra_total = 0
-if 'custos_obra_mensais' in st.session_state:
+if 'custos_obra_mensais' in st.session_state and 'duracao_obra' in st.session_state:
     for item, valores in st.session_state.custos_obra_mensais.items():
         custo_indireto_obra_total += valores['custo_mensal'] * valores['meses']
 
