@@ -4,8 +4,6 @@ import streamlit as st
 import pandas as pd
 from utils import *
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
-import plotly.express as px
-import plotly.graph_objects as go
 
 # Configurações de estilo globais
 st.set_page_config(
@@ -17,13 +15,11 @@ st.set_page_config(
 # Injeção de CSS para aumentar o tamanho da fonte da tabela AgGrid
 st.markdown("""
 <style>
-    /* Aumenta a fonte do cabeçalho da tabela */
-    .ag-header-cell-text {
-        font-size: 38px !important;
+    .ag-theme-streamlit .ag-header-cell-text {
+        font-size: 22px !important;
     }
-    /* Aumenta a fonte das células da tabela */
-    .ag-cell {
-        font-size: 32px !important;
+    .ag-theme-streamlit .ag-cell-value {
+        font-size: 22px !important;
     }
 </style>
 """, unsafe_allow_html=True)
