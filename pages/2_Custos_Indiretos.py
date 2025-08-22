@@ -25,10 +25,6 @@ st.markdown("""
     .ag-cell {
         font-size: 18px !important;
     }
-    /* Classe para remover o padding superior do subheader */
-    .st-emotion-cache-1r65j0p {
-        padding-top: 0rem;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -106,41 +102,49 @@ custo_indireto_calculado = df["Custo (R$)"].sum()
 
 # Bloco principal com a nova tabela AgGrid e Gráficos
 with st.expander("Análise Detalhada de Custos Indiretos", expanded=True):
-    st.subheader("Configuração e Análise de Custos Indiretos")
-
-    # Configurar o AgGrid
-    gb = GridOptionsBuilder.from_dataframe(df)
     
-    jscode_formatador_moeda = JsCode("""
-        function(params) {
-            if (params.value === null || params.value === undefined) { return ''; }
-            return 'R$ ' + params.value.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        }
-    """)
-
-    gb.configure_column("Item", headerName="Item", flex=5, resizable=True)
-    gb.configure_column("Percentual (%)",
-        headerName="Percentual (%)",
-        editable=True,
-        flex=1,
-        resizable=False,
-        type=["numericColumn", "numberColumnFilter", "customNumericFormat"],
-        precision=2
-    )
-    gb.configure_column("Custo (R$)",
-        headerName="Custo (R$)",
-        valueFormatter=jscode_formatador_moeda,
-        flex=1,
-        resizable=False,
-        type=["numericColumn", "numberColumnFilter"]
-    )
-    
-    gridOptions = gb.build()
-
     # Redimensiona as colunas para melhor alinhamento
+    col_tabela_titulo, col_cards_titulo = st.columns([0.6, 0.4])
+    
+    with col_tabela_titulo:
+        st.subheader("Configuração e Análise de Custos Indiretos")
+    
+    with col_cards_titulo:
+        st.subheader("Resumo Financeiro")
+    
+    # Redimensiona as colunas para melhor alinhamento do conteúdo
     col1, col2 = st.columns([0.6, 0.4])
 
     with col1:
+        # Configurar o AgGrid
+        gb = GridOptionsBuilder.from_dataframe(df)
+        
+        jscode_formatador_moeda = JsCode("""
+            function(params) {
+                if (params.value === null || params.value === undefined) { return ''; }
+                return 'R$ ' + params.value.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+        """)
+
+        gb.configure_column("Item", headerName="Item", flex=5, resizable=True)
+        gb.configure_column("Percentual (%)",
+            headerName="Percentual (%)",
+            editable=True,
+            flex=1,
+            resizable=False,
+            type=["numericColumn", "numberColumnFilter", "customNumericFormat"],
+            precision=2
+        )
+        gb.configure_column("Custo (R$)",
+            headerName="Custo (R$)",
+            valueFormatter=jscode_formatador_moeda,
+            flex=1,
+            resizable=False,
+            type=["numericColumn", "numberColumnFilter"]
+        )
+        
+        gridOptions = gb.build()
+
         grid_response = AgGrid(
             df,
             gridOptions=gridOptions,
@@ -153,8 +157,6 @@ with st.expander("Análise Detalhada de Custos Indiretos", expanded=True):
         )
         
     with col2:
-        st.subheader("Resumo Financeiro")
-        
         card_metric_pro(
             label="VGV Total",
             value=f"R$ {fmt_br(vgv_total)}",
