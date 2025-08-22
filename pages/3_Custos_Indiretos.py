@@ -1,4 +1,4 @@
-# pages/2_Custos_Indiretos.py
+# pages/3_Custos_Indiretos.py
 
 import streamlit as st
 import pandas as pd
