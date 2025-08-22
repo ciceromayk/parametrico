@@ -210,7 +210,19 @@ def generate_ai_analysis():
 @st.dialog("Análise de Viabilidade com I.A.")
 def ai_analysis_dialog():
     if "ai_analysis" in st.session_state:
-        st.info(st.session_state.ai_analysis)
+        # Divide o texto em seções baseadas nos cabeçalhos numerados
+        sections = st.session_state.ai_analysis.split('**')[1:]
+        
+        # Itera sobre as seções e formata cada uma individualmente
+        for i in range(0, len(sections), 2):
+            if i + 1 < len(sections):
+                header = sections[i]
+                content = sections[i+1]
+                st.markdown(f"**{header}**")
+                st.markdown(content.strip())
+            else:
+                # Caso a última seção não tenha um par de cabeçalho-conteúdo
+                st.markdown(sections[i].strip())
     else:
         st.warning("Não há análise para ser exibida.")
 
