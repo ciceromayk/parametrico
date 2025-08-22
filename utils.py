@@ -64,7 +64,17 @@ DEFAULT_CUSTOS_INDIRETOS = {
     "Financiamento Bancário":       (1.0, 1.9, 3.0),
 }
 DEFAULT_CUSTOS_INDIRETOS_FIXOS = {}
-DEFAULT_CUSTOS_INDIRETOS_OBRA = {}
+DEFAULT_CUSTOS_INDIRETOS_OBRA = {
+    "Administração de Obra (Engenheiro/Arquiteto)": 15000.0,
+    "Mestre de Obras e Encarregados": 8000.0,
+    "Aluguel de Equipamentos (andaimes, betoneira, etc.)": 5000.0,
+    "Consumo de Energia": 1000.0,
+    "Consumo de Água": 500.0,
+    "Telefone e Internet": 300.0,
+    "Seguros e Licenças de Canteiro": 1200.0,
+    "Transporte de Materiais e Pessoas": 2500.0,
+    "Despesas de Escritório e Apoio": 800.0,
+}
 
 def init_storage(path):
     if not os.path.exists(path):
@@ -365,10 +375,10 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             table.data-table th {{
                 background-color: #f2f2f2;
                 font-weight: bold;
-                font-size: 14px;
+                font-size: 11px;
             }}
             table.data-table td {{
-                font-size: 12px;
+                font-size: 10px;
             }}
             table.data-table tbody tr:nth-child(odd) {{
                 background-color: #f9f9f9;
@@ -450,7 +460,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
         </table>
 
         <div class="page-break"></div>
-        <h2 class="section-title">Detalhamento dos Custos Indiretos</th>
+        <h2 class="section-title">Detalhamento dos Custos Indiretos</h2>
         <table class="data-table">
             <thead>
                 <tr>
