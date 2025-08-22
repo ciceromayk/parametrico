@@ -103,16 +103,33 @@ if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
         "custo_terreno": custo_terreno_total,
         "area_privativa": info.get('area_privativa', 0),
         "area_terreno": info.get('area_terreno', 0),
-        "area_construida": area_construida_total
+        "area_construida": area_construida_total,
+        "composicao_custos": {
+            "Custo Direto": p_direto,
+            "Custo Indireto de Venda": p_indireto_venda,
+            "Custo Indireto de Obra": p_indireto_obra,
+            "Custo do Terreno": p_terreno
+        }
     }
 
     prompt = f"""
     Aja como um analista de viabilidade de empreendimentos imobiliários sênior.
-    Sua tarefa é analisar os dados de um projeto e gerar um relatório conciso, em português, com as seguintes seções:
-    1.  **Resumo da Viabilidade**: Um parágrafo inicial que resume a saúde financeira do projeto, indicando se é viável, promissor ou de alto risco. Use a margem de lucro como principal indicador.
-    2.  **Análise de Desempenho**: Um parágrafo que detalha a performance do projeto, destacando os pontos fortes e fracos. Compare o VGV com o Custo Total e comente sobre o Lucro Bruto e a Margem de Lucro.
-    3.  **Recomendações Chave**: Uma lista com 3 a 5 recomendações acionáveis para melhorar a viabilidade do projeto. Pense em estratégias para aumentar a receita (VGV) ou reduzir custos.
-    
+    Sua tarefa é analisar os dados de um projeto e gerar um relatório detalhado e analítico, em português, com as seguintes seções:
+    1.  **Avaliação da Viabilidade Financeira**:
+        -   Inicie com um parágrafo que resume a saúde financeira do projeto. Baseie sua conclusão na Margem de Lucro Bruto, comparando-a com benchmarks de mercado (e.g., uma margem acima de 15% é geralmente considerada promissora).
+        -   Forneça uma análise aprofundada da Margem de Lucro e do Lucro Bruto, explicando o que esses números significam para a atratividade do investimento.
+    2.  **Análise Detalhada dos Custos**:
+        -   Analise a composição do Custo Total. Para cada tipo de custo (Custo Direto, Custo Indireto de Venda, Custo Indireto de Obra e Custo do Terreno), forneça o valor absoluto e a sua porcentagem em relação ao Custo Total.
+        -   Comente sobre a proporção de cada custo, identificando qual deles representa a maior fatia e como isso pode impactar o projeto. Por exemplo, um custo de terreno muito elevado pode ser um ponto de atenção.
+    3.  **Análise de Desempenho por Área**:
+        -   Calcule o custo por metro quadrado (m²) para o Custo Direto, o Custo Indireto e o Custo Total.
+        -   Interprete esses indicadores, comentando sobre o quão competitivos ou elevados eles são para o tipo de empreendimento.
+    4.  **Recomendações Estratégicas**:
+        -   Forneça uma lista de 3 a 5 recomendações estratégicas e acionáveis para melhorar a viabilidade do projeto.
+        -   As recomendações devem ser específicas. Por exemplo, ao sugerir redução de custos, cite exemplos de onde a redução pode ocorrer (ex: otimização de projetos, negociação com fornecedores). Ao sugerir aumento de receita, cite o preço médio de venda.
+    5.  **Conclusão e Perspectivas Futuras**:
+        -   Um parágrafo final que resume a análise e oferece uma perspectiva sobre os próximos passos, como aprofundar estudos de mercado ou iniciar a fase de detalhamento.
+
     Abaixo estão os dados do projeto. Utilize-os para a análise. Os valores estão em Reais (R$).
     
     Dados do Projeto:
@@ -127,6 +144,7 @@ if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
     - Custo do Terreno: R$ {prompt_data['custo_terreno']:.2f}
     - Área Privativa: {prompt_data['area_privativa']:.2f} m²
     - Área Construída: {prompt_data['area_construida']:.2f} m²
+    - Composição do Custo (%): {prompt_data['composicao_custos']}
     """
     
     # Adiciona a exibição de loading
@@ -134,7 +152,7 @@ if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
         try:
             # Configuração do API do Gemini
             # Verifica se a chave da API está disponível no ambiente
-            API_KEY = "AIzaSyB442-xfQtfJWm2wFR6jbeiqAWtHNUu3WM"
+            API_KEY = ""
             if 'GEMINI_API_KEY' in st.secrets:
                 API_KEY = st.secrets['GEMINI_API_KEY']
             
