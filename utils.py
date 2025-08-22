@@ -210,7 +210,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
         colors=custos_cores,
         wedgeprops={'edgecolor': 'white', 'linewidth': 1.5},
         textprops={'fontsize': 12}, # Aumenta a fonte das etiquetas
-        pctdistance=1.2 # Reposiciona a distância do texto para fora da pizza
+        pctdistance=4 # Reposiciona a distância do texto para fora da pizza
     )
     
     # Ajustar as propriedades das etiquetas
