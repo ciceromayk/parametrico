@@ -19,7 +19,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- DEFINIÇÃO DO DIALOG (POP-UP) ---
-@st.experimental_dialog("Criar Novo Projeto")
+@st.dialog("Criar Novo Projeto")
 def new_project_dialog():
     with st.form("new_project_form"):
         st.write("Insira as informações básicas para começar:")
