@@ -107,7 +107,7 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
         }
     """)
     
-    gb.configure_column("Item", headerName="Item", flex=8, resizable=True)
+    gb.configure_column("Item", headerName="Item", flex=5, resizable=True)
     gb.configure_column("Custo Mensal (R$)",
         headerName="Custo Mensal (R$)",
         editable=True,
@@ -158,7 +158,7 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
         info['duracao_obra'] = st.session_state.duracao_obra
         
         with col_metricas_obra:
-            st.write("### Resumo")
+            st.subheader("Resumo") # Alterado para subheader
             st.write("<br>", unsafe_allow_html=True)
 
             card_metric_pro(
