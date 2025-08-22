@@ -12,7 +12,8 @@ if "projeto_info" not in st.session_state:
         st.switch_page("Início.py")
     st.stop()
 
-render_sidebar()
+# Correção: Passando a chave do formulário para a função render_sidebar()
+render_sidebar(form_key="sidebar_custos_diretos")
 
 info = st.session_state.projeto_info
 st.title("🏗️ Custos Diretos")
