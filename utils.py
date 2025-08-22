@@ -344,10 +344,10 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             table.data-table th {{
                 background-color: #f2f2f2;
                 font-weight: bold;
-                font-size: 14px;
+                font-size: 10px;
             }}
             table.data-table td {{
-                font-size: 12px;
+                font-size: 10px;
             }}
             table.data-table tbody tr:nth-child(odd) {{
                 background-color: #f9f9f9;
