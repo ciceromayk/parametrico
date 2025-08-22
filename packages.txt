@@ -1,0 +1,3 @@
+libpango
+libcairo2
+libgdk-pixbuf
