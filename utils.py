@@ -133,13 +133,6 @@ def render_sidebar(form_key):
     st.sidebar.title("Estudo de Viabilidade")
     st.sidebar.divider()
     
-    # Links de navegação para as páginas (menu estilizado)
-    st.sidebar.page_link("Início.py", label="Início", icon="🏠")
-    st.sidebar.page_link("pages/1_Custos_Diretos.py", label="Custos Diretos", icon="🏗️")
-    st.sidebar.page_link("pages/2_Custos_Indiretos.py", label="Custos Indiretos", icon="💸")
-    st.sidebar.page_link("pages/3_Resultados_e_Indicadores.py", label="Resultados e Indicadores", icon="📈")
-    st.sidebar.divider()
-    
     # Seção para carregar/editar projetos
     if "projeto_info" in st.session_state:
         info = st.session_state.projeto_info
@@ -179,7 +172,7 @@ def render_sidebar(form_key):
 def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
                        custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total,
                        custos_config, custos_indiretos_percentuais, pavimentos_df):
-
+    
     def create_html_card(title, value, color):
         return f"""
         <td style="background-color: {color}; color: white; border-radius: 8px; padding: 15px; text-align: center; width: 25%;">
@@ -195,20 +188,18 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
         ("Custo do Terreno", custo_terreno_total, '#ff7f0e')
     ]
     
-    total_custos = sum(c[1] for c in composicao_custos)
+    total_custos_composicao = sum(c[1] for c in composicao_custos)
     
     tabela_composicao_html = ""
     for label, valor, cor in composicao_custos:
-        percentual = (valor / total_custos) * 100 if total_custos > 0 else 0
+        percentual = (valor / total_custos_composicao) * 100 if total_custos_composicao > 0 else 0
         tabela_composicao_html += f"""
         <td style="background-color: {cor}; color: white; border-radius: 8px; padding: 15px; text-align: center; width: 33%;">
             <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">{label} ({percentual:.1f}%)</div>
             <div style="font-size: 18px; font-weight: bold;">R$ {fmt_br(valor)}</div>
         </td>
         """
-
-    relacao_ac_priv = area_construida_total / info.get('area_privativa', 1) if info.get('area_privativa', 1) > 0 else 0
-    
+        
     # Inicializa as variáveis para evitar NameError
     tabela_pavimentos_html = ""
     tabela_etapas_html = ""
@@ -216,6 +207,11 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     
     # Criar tabela de detalhamento dos pavimentos
     if not pavimentos_df.empty:
+        # Calcular os somatórios
+        total_area = pavimentos_df["area"].sum()
+        total_area_eq = pavimentos_df["area_eq"].sum()
+        total_area_constr = pavimentos_df["area_constr"].sum()
+        
         for index, row in pavimentos_df.iterrows():
             tabela_pavimentos_html += f"""
             <tr>
@@ -228,9 +224,20 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
                 <td style="text-align: right;">{fmt_br(row['area_constr'])} m²</td>
             </tr>
             """
-
+        # Adiciona a linha de total
+        tabela_pavimentos_html += f"""
+        <tr style="font-weight: bold; background-color: #f2f2f2;">
+            <td colspan="4">Total</td>
+            <td style="text-align: right;">{fmt_br(total_area)} m²</td>
+            <td style="text-align: right;">{fmt_br(total_area_eq)} m²</td>
+            <td style="text-align: right;">{fmt_br(total_area_constr)} m²</td>
+        </tr>
+        """
+    
     # Criar tabela de custos por etapa da obra
     if info.get('etapas_percentuais'):
+        total_custo_etapas = 0
+        total_percentual_etapas = 0
         for etapa, (min_val, default_val, max_val) in ETAPAS_OBRA.items():
             percentual = info['etapas_percentuais'].get(etapa, {}).get('percentual', 0)
             custo = custo_direto_total * (float(percentual) / 100)
@@ -241,9 +248,21 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
                 <td style="text-align: right;">R$ {fmt_br(custo)}</td>
             </tr>
             """
+            total_custo_etapas += custo
+            total_percentual_etapas += percentual
+        # Adiciona a linha de total
+        tabela_etapas_html += f"""
+        <tr style="font-weight: bold; background-color: #f2f2f2;">
+            <td>Total</td>
+            <td style="text-align: right;">{total_percentual_etapas:.2f}%</td>
+            <td style="text-align: right;">R$ {fmt_br(total_custo_etapas)}</td>
+        </tr>
+        """
     
     # Criar tabela de custos indiretos
     if custos_indiretos_percentuais:
+        total_custo_indireto = 0
+        total_percentual_indireto = 0
         for item, values in custos_indiretos_percentuais.items():
             percentual = values.get('percentual', 0)
             custo = vgv_total * (float(percentual) / 100)
@@ -254,6 +273,18 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
                 <td style="text-align: right;">R$ {fmt_br(custo)}</td>
             </tr>
             """
+            total_custo_indireto += custo
+            total_percentual_indireto += percentual
+        # Adiciona a linha de total
+        tabela_custos_indiretos_html += f"""
+        <tr style="font-weight: bold; background-color: #f2f2f2;">
+            <td>Total</td>
+            <td style="text-align: right;">{total_percentual_indireto:.2f}%</td>
+            <td style="text-align: right;">R$ {fmt_br(total_custo_indireto)}</td>
+        </tr>
+        """
+    
+    relacao_ac_priv = area_construida_total / info.get('area_privativa', 1) if info.get('area_privativa', 1) > 0 else 0
     
     html_string = f"""
     <html>
