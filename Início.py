@@ -25,10 +25,11 @@ def page_project_selection():
     
     st.divider()
 
-    # Botão para abrir o pop-up de novo projeto
+    # Adiciona o botão para acionar o modal
     if st.button("➕ Criar Novo Projeto", type="primary", use_container_width=True):
         st.session_state["show_modal"] = True
 
+    # Lógica para mostrar o modal
     if "show_modal" in st.session_state and st.session_state["show_modal"]:
         with st.modal(key="modal_novo_projeto"):
             st.subheader("➕ Criar Novo Projeto")
@@ -56,7 +57,7 @@ def page_project_selection():
                         st.session_state.projeto_info = info
                         st.session_state["show_modal"] = False
                         st.rerun()
-
+                
     st.subheader("📂 Projetos Existentes")
     
     projetos = list_projects()
