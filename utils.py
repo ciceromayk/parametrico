@@ -178,8 +178,8 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     <head>
         <meta charset="UTF-8">
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
-            body {{ font-family: 'Roboto', sans-serif; color: #333; }}
+            /* REMOVEMOS O @import do Google Fonts */
+            body {{ font-family: sans-serif; color: #333; }} /* Usamos uma fonte padrão */
             h1 {{ text-align: center; color: #1a5276; }}
             h2 {{ color: #1f618d; border-bottom: 2px solid #aed6f1; padding-bottom: 5px; margin-top: 30px; }}
             .container {{ display: flex; justify-content: space-between; gap: 15px; margin-bottom: 20px; }}
@@ -233,7 +233,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             {create_html_card("Custo Indireto / m²", f"R$ {fmt_br(custo_indireto_calculado / area_construida_total)}", "#31708f")}
             {create_html_card("Custo Total / m²", f"R$ {fmt_br(valor_total_despesas / area_construida_total)}", "#8a6d3b")}
         """
-    html_string += """
+    html_string += f"""
         </div>
         <footer>Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}</footer>
     </body>
