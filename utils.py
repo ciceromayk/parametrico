@@ -209,6 +209,52 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
 
     relacao_ac_priv = area_construida_total / info.get('area_privativa', 1) if info.get('area_privativa', 1) > 0 else 0
     
+    # Inicializa as variáveis para evitar NameError
+    tabela_pavimentos_html = ""
+    tabela_etapas_html = ""
+    tabela_custos_indiretos_html = ""
+    
+    # Criar tabela de detalhamento dos pavimentos
+    if not pavimentos_df.empty:
+        for index, row in pavimentos_df.iterrows():
+            tabela_pavimentos_html += f"""
+            <tr>
+                <td>{row['nome']}</td>
+                <td>{row['tipo']}</td>
+                <td style="text-align: center;">{row['rep']}</td>
+                <td style="text-align: right;">{row['coef']:.2f}</td>
+                <td style="text-align: right;">{fmt_br(row['area'])} m²</td>
+                <td style="text-align: right;">{fmt_br(row['area_eq'])} m²</td>
+                <td style="text-align: right;">{fmt_br(row['area_constr'])} m²</td>
+            </tr>
+            """
+
+    # Criar tabela de custos por etapa da obra
+    if info.get('etapas_percentuais'):
+        for etapa, (min_val, default_val, max_val) in ETAPAS_OBRA.items():
+            percentual = info['etapas_percentuais'].get(etapa, {}).get('percentual', 0)
+            custo = custo_direto_total * (float(percentual) / 100)
+            tabela_etapas_html += f"""
+            <tr>
+                <td>{etapa}</td>
+                <td style="text-align: right;">{percentual:.2f}%</td>
+                <td style="text-align: right;">R$ {fmt_br(custo)}</td>
+            </tr>
+            """
+    
+    # Criar tabela de custos indiretos
+    if custos_indiretos_percentuais:
+        for item, values in custos_indiretos_percentuais.items():
+            percentual = values.get('percentual', 0)
+            custo = vgv_total * (float(percentual) / 100)
+            tabela_custos_indiretos_html += f"""
+            <tr>
+                <td>{item}</td>
+                <td style="text-align: right;">{percentual:.2f}%</td>
+                <td style="text-align: right;">R$ {fmt_br(custo)}</td>
+            </tr>
+            """
+    
     html_string = f"""
     <html>
     <head>
