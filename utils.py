@@ -188,89 +188,25 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
         </td>
         """
     
-    # Gerar o gráfico de pizza como imagem base64
-    custos_labels = ['Custo Direto', 'Custo Indireto', 'Custo do Terreno']
-    custos_valores = [custo_direto_total, custo_indireto_calculado, custo_terreno_total]
-    # Usando uma paleta de cores mais distintas e agradável
-    custos_cores = ['#2ca02c', '#1f77b4', '#ff7f0e']
-
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Gerar os dados para a seção de Composição do Custo Total
+    composicao_custos = [
+        ("Custo Direto", custo_direto_total, '#2ca02c'),
+        ("Custo Indireto", custo_indireto_calculado, '#1f77b4'),
+        ("Custo do Terreno", custo_terreno_total, '#ff7f0e')
+    ]
     
-    # Aumentar a distância das etiquetas e usar uma lista de etiquetas vazias para não sobrepor
-    # As etiquetas serão adicionadas na legenda
-    wedges, texts = ax.pie(
-        custos_valores,
-        startangle=90,
-        colors=custos_cores,
-        wedgeprops={'edgecolor': 'white', 'linewidth': 1.5}
-    )
-
-    # Criar a legenda separadamente para melhor controle de posição e estilo
-    total_custos = sum(custos_valores)
-    legend_labels = []
-    for i, label in enumerate(custos_labels):
-        valor = custos_valores[i]
+    total_custos = sum(c[1] for c in composicao_custos)
+    
+    tabela_composicao_html = ""
+    for label, valor, cor in composicao_custos:
         percentual = (valor / total_custos) * 100 if total_custos > 0 else 0
-        legend_labels.append(f"{label}: R$ {fmt_br(valor)} ({percentual:.1f}%)")
-    
-    leg = ax.legend(wedges, legend_labels,
-                    title="Tipos de Custo",
-                    loc="center",
-                    bbox_to_anchor=(0.5, -0.1),
-                    fontsize='12',
-                    fancybox=True)
+        tabela_composicao_html += f"""
+        <td style="background-color: {cor}; color: white; border-radius: 8px; padding: 15px; text-align: center; width: 33%;">
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">{label} ({percentual:.1f}%)</div>
+            <div style="font-size: 18px; font-weight: bold;">R$ {fmt_br(valor)}</div>
+        </td>
+        """
 
-    ax.set_title("Composição do Custo Total", fontsize=18, y=1.05)
-    
-    buf = BytesIO()
-    fig.savefig(buf, format="png", bbox_inches='tight')
-    plt.close(fig)
-    grafico_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-
-    # Criar tabela de detalhamento dos pavimentos
-    tabela_pavimentos_html = ""
-    if not pavimentos_df.empty:
-        for index, row in pavimentos_df.iterrows():
-            tabela_pavimentos_html += f"""
-            <tr>
-                <td>{row['nome']}</td>
-                <td>{row['tipo']}</td>
-                <td style="text-align: center;">{row['rep']}</td>
-                <td style="text-align: right;">{row['coef']:.2f}</td>
-                <td style="text-align: right;">{fmt_br(row['area'])} m²</td>
-                <td style="text-align: right;">{fmt_br(row['area_eq'])} m²</td>
-                <td style="text-align: right;">{fmt_br(row['area_constr'])} m²</td>
-            </tr>
-            """
-
-    # Criar tabela de custos por etapa da obra
-    tabela_etapas_html = ""
-    if info.get('etapas_percentuais'):
-        for etapa, (min_val, default_val, max_val) in ETAPAS_OBRA.items():
-            percentual = info['etapas_percentuais'].get(etapa, {}).get('percentual', 0)
-            custo = custo_direto_total * (float(percentual) / 100)
-            tabela_etapas_html += f"""
-            <tr>
-                <td>{etapa}</td>
-                <td style="text-align: right;">{percentual:.2f}%</td>
-                <td style="text-align: right;">R$ {fmt_br(custo)}</td>
-            </tr>
-            """
-    
-    # Criar tabela de custos indiretos
-    tabela_custos_indiretos_html = ""
-    if custos_indiretos_percentuais:
-        for item, values in custos_indiretos_percentuais.items():
-            percentual = values.get('percentual', 0)
-            custo = vgv_total * (float(percentual) / 100)
-            tabela_custos_indiretos_html += f"""
-            <tr>
-                <td>{item}</td>
-                <td style="text-align: right;">{percentual:.2f}%</td>
-                <td style="text-align: right;">R$ {fmt_br(custo)}</td>
-            </tr>
-            """
-    
     relacao_ac_priv = area_construida_total / info.get('area_privativa', 1) if info.get('area_privativa', 1) > 0 else 0
     
     html_string = f"""
@@ -390,9 +326,12 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             </tr>
         </table>
 
-        <div style="text-align: center; margin-top: 30px;">
-            <img src="data:image/png;base64,{grafico_base64}" alt="Gráfico de Composição do Custo Total" style="width: 80%; max-width: 600px;"/>
-        </div>
+        <h2 class="section-title">Composição do Custo Total</h2>
+        <table class="card-container">
+            <tr>
+                {tabela_composicao_html}
+            </tr>
+        </table>
 
         <div class="page-break"></div>
         <h2 class="section-title">Detalhamento dos Pavimentos</h2>
