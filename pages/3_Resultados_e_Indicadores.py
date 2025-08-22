@@ -196,16 +196,18 @@ if st.button("Gerar Análise de Viabilidade com I.A.", type="primary"):
                     else:
                         response.raise_for_status()
                 
-                if response.status_code != 200:
-                    st.error("Erro ao se comunicar com a API da I.A. Tente novamente mais tarde.")
+                if response.status_code == 200:
+                    result = response.json()
+                    if result and 'candidates' in result and len(result['candidates']) > 0 and 'content' in result['candidates'][0] and 'parts' in result['candidates'][0]['content'] and len(result['candidates'][0]['content']['parts']) > 0:
+                        analysis = result['candidates'][0]['content']['parts'][0]['text']
+                        st.session_state.ai_analysis = analysis
+                    else:
+                        st.error("A I.A. não conseguiu gerar uma resposta válida. Por favor, tente novamente com dados diferentes ou ajuste o prompt.")
                 else:
-                    analysis = response.json()['candidates'][0]['content']['parts'][0]['text']
-                    st.session_state.ai_analysis = analysis
+                    st.error(f"Erro ao se comunicar com a API da I.A.: {response.status_code} - {response.text}. Tente novamente mais tarde.")
 
         except requests.exceptions.RequestException as e:
             st.error(f"Erro de conexão com a API da I.A.: {e}")
-        except KeyError:
-            st.error("Erro ao processar a resposta da I.A. O formato da resposta não é o esperado.")
         except Exception as e:
             st.error(f"Ocorreu um erro inesperado: {e}")
 
