@@ -192,7 +192,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     # Gerar o gráfico de pizza como imagem base64
     custos_labels = ['Custo Direto', 'Custo Indireto', 'Custo do Terreno']
     custos_valores = [custo_direto_total, custo_indireto_calculado, custo_terreno_total]
-    custos_cores = ['#4A7C93', '#73A6B4', '#A8D0DB']
+    custos_cores = ['#2ca02c', '#1f77b4', '#ff7f0e'] # Novas cores mais distintas
     
     fig, ax = plt.subplots(figsize=(10, 6))
     
@@ -202,30 +202,23 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
 
     wedges, texts, autotexts = ax.pie(
         custos_valores,
+        labels=custos_labels, # Inclui as legendas diretamente no gráfico
         autopct=lambda pct: format_labels_and_values(pct, custos_valores),
         startangle=90,
         colors=custos_cores,
         wedgeprops={'edgecolor': 'white', 'linewidth': 1.5},
         textprops={'fontsize': 10},
-        pctdistance=1.25 # Distância da etiqueta do centro da pizza
+        pctdistance=1.2 # Reposiciona a distância do texto para fora da pizza
     )
     
-    # Reposicionar as etiquetas de texto para fora da pizza
-    for text in texts:
+    # Mudar a cor das etiquetas de percentual para preto
+    for text in autotexts:
         text.set_color('black')
-
-    # Aumentar a fonte do título e reposicioná-lo para que não sobreponha a legenda
+        
     ax.set_title("Composição do Custo Total", fontsize=18, y=1.05)
     
-    # Adicionar legenda com a descrição
-    ax.legend(wedges, custos_labels,
-              title="Tipos de Custo",
-              loc="center left",
-              bbox_to_anchor=(1, 0, 0.5, 1),
-              fontsize='12')
-    
     buf = BytesIO()
-    fig.savefig(buf, format="png", bbox_inches='tight') # Usa bbox_inches para evitar cortes
+    fig.savefig(buf, format="png", bbox_inches='tight')
     plt.close(fig)
     grafico_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
 
