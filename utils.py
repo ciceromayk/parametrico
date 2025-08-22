@@ -199,7 +199,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             <div style="font-size: 18px; font-weight: bold;">R$ {fmt_br(valor)}</div>
         </td>
         """
-    
+        
     # Inicializa as variáveis para evitar NameError
     tabela_pavimentos_html = ""
     tabela_etapas_html = ""
