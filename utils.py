@@ -182,9 +182,20 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     # Função auxiliar para criar um card em HTML
     def create_html_card(title, value, color):
         return f"""
-        <div class="card" style="background-color: {color};">
-            <div class="card-title">{title}</div>
-            <div class="card-value">{value}</div>
+        <div class="card" style="
+            flex: 1;
+            background-color: {color};
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+            box-sizing: border-box;
+            word-wrap: break-word; /* Prevents overflow */
+            min-width: 150px; /* Adjust based on your design */
+        ">
+            <div class="card-title" style="font-size: 14px; margin-bottom: 5px; font-weight: bold;">{title}</div>
+            <div class="card-value" style="font-size: 18px; font-weight: bold;">{value}</div>
         </div>
         """
 
@@ -197,14 +208,22 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             body {{ font-family: sans-serif; color: #333; }}
             h1 {{ text-align: center; color: #1a5276; }}
             h2 {{ color: #1f618d; border-bottom: 2px solid #aed6f1; padding-bottom: 5px; margin-top: 30px; }}
-            .container {{ display: flex; justify-content: space-between; gap: 15px; margin-bottom: 20px; }}
-            .card {{ 
-                flex: 1; 
-                color: white; 
-                border-radius: 8px; 
-                padding: 15px; 
-                text-align: center; 
+            .container {{
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                gap: 10px;
+                margin-bottom: 20px;
+            }}
+            .card {{
+                flex: 1 1 23%; /* Flex-grow, flex-shrink, flex-basis for responsive layout */
+                min-width: 150px;
+                color: white;
+                border-radius: 8px;
+                padding: 15px;
+                text-align: center;
                 box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+                box-sizing: border-box;
             }}
             .card-title {{ font-size: 14px; margin-bottom: 5px; font-weight: bold; }}
             .card-value {{ font-size: 22px; font-weight: bold; }}
@@ -254,7 +273,5 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     </body>
     </html>
     """
-
-    # Converte a string HTML para PDF em memória e retorna os bytes
     return HTML(string=html_string).write_pdf()
 
