@@ -9,14 +9,14 @@ from utils import (
 st.set_page_config(page_title="Estudo de Viabilidade", layout="wide")
 init_storage("projects.json")
 
-# Adiciona um estilo para o botão
+# Injeta CSS para esconder o menu automático
 st.markdown("""
 <style>
-    div[data-testid="stSidebarNav"] li a {
-        font-size: 18px;
-    }
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- DEFINIÇÃO DO DIALOG (POP-UP) ---
 @st.dialog("Criar Novo Projeto")
@@ -24,10 +24,12 @@ def new_project_dialog():
     with st.form("new_project_form"):
         st.write("Insira as informações básicas para começar:")
         nome = st.text_input("Nome do Novo Projeto")
-        c1, c2, c3 = st.columns(3)
-        area_terreno = c1.number_input("Área Terreno (m²)", min_value=0.0, format="%.2f")
-        area_privativa = c2.number_input("Área Privativa Total (m²)", min_value=0.0, format="%.2f")
-        num_unidades = c3.number_input("Nº de Unidades", min_value=1, step=1)
+        
+        # Ajuste nas colunas para alinhar os campos
+        c1, c2, c3 = st.columns([1, 1, 1])
+        area_terreno = c1.number_input("Área Terreno (m²)", min_value=0.0, format="%.2f", label_visibility="visible")
+        area_privativa = c2.number_input("Área Privativa Total (m²)", min_value=0.0, format="%.2f", label_visibility="visible")
+        num_unidades = c3.number_input("Nº de Unidades", min_value=1, step=1, label_visibility="visible")
         
         if st.form_submit_button("💾 Criar e Carregar Projeto", use_container_width=True):
             if not nome:
