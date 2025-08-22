@@ -177,7 +177,7 @@ def render_sidebar(form_key):
 
 # --- NOVA FUNÇÃO DE GERAÇÃO DE PDF ---
 def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
-                       custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total):
+                       custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total, custos_config):
     
     # Função auxiliar para criar um card em HTML
     def create_html_card(title, value, color):
@@ -200,6 +200,8 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
         """
 
     # Monta o corpo do HTML
+    relacao_ac_priv = area_construida_total / info.get('area_privativa', 0) if info.get('area_privativa', 0) > 0 else 0
+    
     html_string = f"""
     <html>
     <head>
@@ -217,22 +219,30 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             }}
             .card {{
                 flex: 1 1 23%; /* Flex-grow, flex-shrink, flex-basis for responsive layout */
-                min-width: 80px;
+                min-width: 150px;
                 color: white;
                 border-radius: 8px;
-                padding: 10px;
+                padding: 15px;
                 text-align: center;
                 box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
                 box-sizing: border-box;
             }}
-            .card-title {{ font-size: 12px; margin-bottom: 5px; font-weight: bold; }}
-            .card-value {{ font-size: 14px; font-weight: bold; }}
+            .card-title {{ font-size: 14px; margin-bottom: 5px; font-weight: bold; }}
+            .card-value {{ font-size: 22px; font-weight: bold; }}
             footer {{ position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 12px; color: #888; }}
         </style>
     </head>
     <body>
         <h1>Relatório de Viabilidade de Empreendimento</h1>
         <h2>Projeto: {info.get('nome', 'N/A')}</h2>
+
+        <h2>Dados de Área e Venda</h2>
+        <div class="container">
+            {create_html_card("Área Privativa", f"{fmt_br(info.get('area_privativa', 0))} m²", "#1f77b4")}
+            {create_html_card("Área Construída", f"{fmt_br(area_construida_total)} m²", "#ff7f0e")}
+            {create_html_card("Preço Venda / m²", f"R$ {fmt_br(custos_config.get('preco_medio_venda_m2', 0))}", "#2ca02c")}
+            {create_html_card("Relação AC/AP", f"{relacao_ac_priv:.2f}", "#d62728")}
+        </div>
 
         <h2>Resultados Financeiros</h2>
         <div class="container">
