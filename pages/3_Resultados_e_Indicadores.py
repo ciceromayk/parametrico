@@ -83,6 +83,6 @@ if st.button("Gerar e Baixar Relatório PDF", type="primary"):
         )
         st.download_button(
             label="Relatório  Concluído! Clique aqui  baixar.",
-            data=pdf_data,
+            #data=pdf_data,
             file_name=f"Relatorio_{info['nome']}.pdf"
         )
