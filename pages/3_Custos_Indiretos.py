@@ -3,12 +3,6 @@
 import streamlit as st
 import pandas as pd
 from utils import *
-
-
-
-
-
-
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 
 # Configurações de estilo globais
