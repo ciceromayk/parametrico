@@ -198,5 +198,3 @@ with st.expander("Detalhamento de Custos Indiretos", expanded=True):
         
     # Atualiza o estado da sessão
     info['custos_indiretos_percentuais'] = st.session_state.custos_indiretos_percentuais
-
-
