@@ -191,39 +191,34 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     # Gerar o gráfico de pizza como imagem base64
     custos_labels = ['Custo Direto', 'Custo Indireto', 'Custo do Terreno']
     custos_valores = [custo_direto_total, custo_indireto_calculado, custo_terreno_total]
-    custos_cores = ['#2ca02c', '#1f77b4', '#ff7f0e'] # Novas cores mais distintas
-    
+    # Usando uma paleta de cores mais distintas e agradável
+    custos_cores = ['#2ca02c', '#1f77b4', '#ff7f0e']
+
     fig, ax = plt.subplots(figsize=(10, 6))
-    
-    def format_labels(pct, all_values):
-        absolute_value = pct / 100. * sum(all_values)
-        if absolute_value == 0:
-            return ""
-        return f'R$ {fmt_br(absolute_value)}\n({pct:.1f}%)'
     
     # Aumentar a distância das etiquetas e usar uma lista de etiquetas vazias para não sobrepor
     # As etiquetas serão adicionadas na legenda
-    wedges, texts, autotexts = ax.pie(
+    wedges, texts = ax.pie(
         custos_valores,
-        autopct=lambda pct: format_labels(pct, custos_valores),
         startangle=90,
         colors=custos_cores,
-        wedgeprops={'edgecolor': 'white', 'linewidth': 1.5},
-        textprops={'fontsize': 12},
-        pctdistance=1.6
+        wedgeprops={'edgecolor': 'white', 'linewidth': 1.5}
     )
 
     # Criar a legenda separadamente para melhor controle de posição e estilo
-    leg = ax.legend(wedges, [f"{l} ({format_labels(p.get_text(), custos_valores)})" for l, p in zip(custos_labels, autotexts)],
+    total_custos = sum(custos_valores)
+    legend_labels = []
+    for i, label in enumerate(custos_labels):
+        valor = custos_valores[i]
+        percentual = (valor / total_custos) * 100 if total_custos > 0 else 0
+        legend_labels.append(f"{label}: R$ {fmt_br(valor)} ({percentual:.1f}%)")
+    
+    leg = ax.legend(wedges, legend_labels,
                     title="Tipos de Custo",
                     loc="center",
                     bbox_to_anchor=(0.5, -0.1),
                     fontsize='12',
                     fancybox=True)
-    
-    # Remover as etiquetas de dados sobrepostas da pizza
-    for autotext in autotexts:
-        autotext.set_visible(False)
 
     ax.set_title("Composição do Custo Total", fontsize=18, y=1.05)
     
