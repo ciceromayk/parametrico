@@ -90,7 +90,7 @@ if st.button("Gerar Relatório em PDF", type="primary"):
     with st.spinner("Gerando seu relatório..."):
         pdf_data = generate_pdf_report(
             info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
-            custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total
+            custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total, custos_config
         )
         st.download_button(
             label="Baixar Relatório PDF",
