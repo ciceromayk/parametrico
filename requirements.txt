@@ -4,3 +4,4 @@ plotly
 fpdf2
 streamlit-antd-components
 streamlit-aggrid
+weasyprint
