@@ -41,7 +41,15 @@ if custos_indiretos_percentuais:
         custo_indireto_calculado += vgv_total * (float(percentual) / 100)
 
 custo_terreno_total = info.get('area_terreno', 0) * custos_config.get('custo_terreno_m2', 2500.0)
-valor_total_despesas = custo_direto_total + custo_indireto_calculado + custo_terreno_total
+
+# Obter o custo indireto de obra da session_state
+custo_indireto_obra_total = 0
+if 'custos_obra_mensais' in st.session_state:
+    for item, valores in st.session_state.custos_obra_mensais.items():
+        custo_indireto_obra_total += valores['custo_mensal'] * valores['meses']
+
+# TOTAIS - incluindo os custos indiretos de obra
+valor_total_despesas = custo_direto_total + custo_indireto_calculado + custo_terreno_total + custo_indireto_obra_total
 lucratividade_valor = vgv_total - valor_total_despesas
 lucratividade_percentual = (lucratividade_valor / vgv_total) * 100 if vgv_total > 0 else 0
 
@@ -79,7 +87,7 @@ if st.button("Gerar e Baixar Relatório PDF", type="primary"):
         pdf_data = generate_pdf_report(
             info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
             custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total,
-            custos_config, custos_indiretos_percentuais, pavimentos_df
+            custos_config, custos_indiretos_percentuais, pavimentos_df, custo_indireto_obra_total
         )
         st.download_button(
             label="Relatório Concluído! Clique aqui para baixar.",
