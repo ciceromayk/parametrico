@@ -135,12 +135,22 @@ def generate_ai_analysis():
     prompt = f"""
     Act as a senior real estate development viability analyst. Your task is to analyze a project's data and generate a detailed and analytical report in Portuguese.
 
-    The report should have the following sections:
-    1.  **Avaliação da Viabilidade Financeira**: Start with a paragraph summarizing the financial health of the project. Compare the Gross Profit Margin with the following market benchmarks: "{benchmark_data['profit_margin_benchmark']}". Explain the implications of the project's Gross Profit and its overall attractiveness.
-    2.  **Análise Detalhada dos Custos**: Analyze the composition of the Total Cost. Present the absolute values and percentages of each cost type (Direct Cost, Indirect Sales Cost, Indirect Construction Cost, and Land Cost). Use the following context to enrich your analysis: "{benchmark_data['cost_proportions_info']}".
-    3.  **Análise de Desempenho por Área**: Provide and interpret the cost per square meter (m²) indicators for Direct Cost, Indirect Cost, and Total Cost. Compare these costs with the following market benchmark: "{benchmark_data['cost_per_sqm_benchmark']}".
-    4.  **Recomendações Estratégicas**: Provide a list of 3 to 5 actionable strategic recommendations to improve the project's viability. The recommendations should be specific. For example, cite examples of where cost reduction can occur or how revenue can be increased.
-    5.  **Conclusão e Próximos Passos**: A final paragraph that summarizes the analysis and offers a perspective on the next steps, such as conducting deeper market studies or starting the detailing phase.
+    The report should have the following sections, formatted with simple numbered headings followed by the content:
+    
+    1. Avaliação da Viabilidade Financeira
+    Start with a paragraph summarizing the financial health of the project. Compare the Gross Profit Margin with the following market benchmarks: "{benchmark_data['profit_margin_benchmark']}". Explain the implications of the project's Gross Profit and its overall attractiveness.
+    
+    2. Análise Detalhada dos Custos
+    Analyze the composition of the Total Cost. Present the absolute values and percentages of each cost type (Direct Cost, Indirect Sales Cost, Indirect Construction Cost, and Land Cost). Use the following context to enrich your analysis: "{benchmark_data['cost_proportions_info']}".
+
+    3. Análise de Desempenho por Área
+    Provide and interpret the cost per square meter (m²) indicators for Direct Cost, Indirect Cost, and Total Cost. Compare these costs with the following market benchmark: "{benchmark_data['cost_per_sqm_benchmark']}".
+
+    4. Recomendações Estratégicas
+    Provide a list of 3 to 5 actionable strategic recommendations to improve the project's viability. The recommendations should be specific. For example, cite examples of where cost reduction can occur or how revenue can be increased.
+
+    5. Conclusão e Próximos Passos
+    A final paragraph that summarizes the analysis and offers a perspective on the next steps, such as conducting deeper market studies or starting the detailing phase.
 
     Below is the project data. Use it for the analysis. The values are in Brazilian Reais (R$).
     
@@ -218,18 +228,20 @@ def generate_ai_analysis():
 def ai_analysis_dialog():
     if "ai_analysis" in st.session_state:
         # Divide o texto em seções baseadas nos cabeçalhos numerados
-        sections = st.session_state.ai_analysis.split('**')[1:]
+        # Adapta a lógica para o novo formato do prompt
+        sections = st.session_state.ai_analysis.split('\n\n')
         
         # Itera sobre as seções e formata cada uma individualmente
-        for i in range(0, len(sections), 2):
-            if i + 1 < len(sections):
-                header = sections[i]
-                content = sections[i+1]
-                st.markdown(f"**{header}**")
-                st.markdown(content.strip())
-            else:
-                # Caso a última seção não tenha um par de cabeçalho-conteúdo
-                st.markdown(sections[i].strip())
+        for section in sections:
+            if section.strip():
+                if section.startswith("1. ") or section.startswith("2. ") or section.startswith("3. ") or section.startswith("4. ") or section.startswith("5. "):
+                    parts = section.split('\n', 1)
+                    header = parts[0].strip()
+                    content = parts[1].strip() if len(parts) > 1 else ""
+                    st.markdown(f"**{header}**")
+                    st.markdown(content)
+                else:
+                    st.markdown(section.strip())
     else:
         st.warning("Não há análise para ser exibida.")
 
