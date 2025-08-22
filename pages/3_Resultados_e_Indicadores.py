@@ -48,7 +48,6 @@ if 'custos_obra_mensais' in st.session_state and 'duracao_obra' in st.session_st
     for item, valores in st.session_state.custos_obra_mensais.items():
         custo_indireto_obra_total += valores['custo_mensal'] * valores['meses']
 
-
 # TOTAIS - incluindo os custos indiretos de obra
 valor_total_despesas = custo_direto_total + custo_indireto_calculado + custo_terreno_total + custo_indireto_obra_total
 lucratividade_valor = vgv_total - valor_total_despesas
