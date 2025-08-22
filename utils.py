@@ -183,40 +183,50 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     def create_html_card(title, value, color):
         return f"""
         <td style="background-color: {color}; color: white; border-radius: 8px; padding: 15px; text-align: center; width: 25%;">
-            <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">{title}</div>
-            <div style="font-size: 14px; font-weight: bold;">{value}</div>
+            <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">{title}</div>
+            <div style="font-size: 16px; font-weight: bold;">{value}</div>
         </td>
         """
     
     # Gerar o gráfico de pizza como imagem base64
     custos_labels = ['Custo Direto', 'Custo Indireto', 'Custo do Terreno']
     custos_valores = [custo_direto_total, custo_indireto_calculado, custo_terreno_total]
-    custos_cores = ['#2ca02c', '#1f77b4', '#ff7f0e'] # Novas cores mais distintas
-    
+    # Usando uma paleta de cores mais distintas e agradável
+    custos_cores = ['#2ca02c', '#1f77b4', '#ff7f0e']
+
     fig, ax = plt.subplots(figsize=(10, 6))
     
-    def format_labels_and_values(pct, all_values):
+    # Função para formatar as etiquetas com valor e percentual
+    def format_labels(pct, all_values):
         absolute_value = pct / 100. * sum(all_values)
-        # Verifica se o valor é zero para não exibir
         if absolute_value == 0:
             return ""
         return f'R$ {fmt_br(absolute_value)}\n({pct:.1f}%)'
-
+    
+    # Aumentar a distância das etiquetas e usar uma lista de etiquetas vazias para não sobrepor
+    # As etiquetas serão adicionadas na legenda
     wedges, texts, autotexts = ax.pie(
         custos_valores,
-        labels=custos_labels, # Inclui as legendas diretamente no gráfico
-        autopct=lambda pct: format_labels_and_values(pct, custos_valores),
+        autopct=lambda pct: format_labels(pct, custos_valores),
         startangle=90,
         colors=custos_cores,
         wedgeprops={'edgecolor': 'white', 'linewidth': 1.5},
-        textprops={'fontsize': 12}, # Aumenta a fonte das etiquetas
-        pctdistance=1.6 # Reposiciona a distância do texto para fora da pizza
+        textprops={'fontsize': 12},
+        pctdistance=1.6
     )
+
+    # Criar a legenda separadamente para melhor controle de posição e estilo
+    leg = ax.legend(wedges, [f"{l} ({format_labels(p, custos_valores)})" for l, p in zip(custos_labels, autotexts)],
+                    title="Tipos de Custo",
+                    loc="center",
+                    bbox_to_anchor=(0.5, -0.1),
+                    fontsize='12',
+                    fancybox=True)
     
-    # Ajustar as propriedades das etiquetas
-    for text in autotexts:
-        text.set_color('black')
-        
+    # Remover as etiquetas de dados sobrepostas da pizza
+    for autotext in autotexts:
+        autotext.set_visible(False)
+
     ax.set_title("Composição do Custo Total", fontsize=18, y=1.05)
     
     buf = BytesIO()
@@ -347,10 +357,10 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
             table.data-table th {{
                 background-color: #f2f2f2;
                 font-weight: bold;
-                font-size: 10px;
+                font-size: 14px;
             }}
             table.data-table td {{
-                font-size: 10px;
+                font-size: 12px;
             }}
             table.data-table tbody tr:nth-child(odd) {{
                 background-color: #f9f9f9;
