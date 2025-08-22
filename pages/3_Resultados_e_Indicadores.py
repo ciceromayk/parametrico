@@ -82,7 +82,8 @@ if st.button("Gerar e Baixar Relatório PDF", type="primary"):
             custos_config, custos_indiretos_percentuais, pavimentos_df
         )
         st.download_button(
-            label="Relatório  Concluído! Clique aqui  baixar.",
-            #data=pdf_data,
-            file_name=f"Relatorio_{info['nome']}.pdf"
+            label="Download Concluído! Clique aqui para baixar novamente.",
+            data=pdf_data,
+            file_name=f"Relatorio_{info['nome']}.pdf",
+            mime="application/pdf"
         )
