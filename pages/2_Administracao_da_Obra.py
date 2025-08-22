@@ -125,7 +125,7 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
             df_custos_obra,
             gridOptions=gridOptions,
             height=450,
-            width='100%',
+            width='200%',
             update_mode='MODEL_CHANGED',
             allow_unsafe_jscode=True,
             try_convert_numeric_dtypes=True,
@@ -150,7 +150,7 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
         st.write("<br>", unsafe_allow_html=True)
         
         # Centraliza o card de métricas
-        _, col_metrica_obra, _ = st.columns([3, 6, 3])
+        _, col_metrica_obra, _ = st.columns([2, 8, 2])
         
         with col_metrica_obra:
             col_res1, col_res2, col_res3 = st.columns(3)
