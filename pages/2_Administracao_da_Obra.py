@@ -107,7 +107,7 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
         }
     """)
     
-    gb.configure_column("Item", headerName="Item", flex=5, resizable=True)
+    gb.configure_column("Item", headerName="Item", flex=8, resizable=True)
     gb.configure_column("Custo Mensal (R$)",
         headerName="Custo Mensal (R$)",
         editable=True,
