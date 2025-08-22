@@ -26,7 +26,7 @@ def new_project_dialog():
         nome = st.text_input("Nome do Novo Projeto")
         
         # Ajuste nas colunas para alinhar os campos
-        c1, c2, c3 = st.columns([2, 2, 1])
+        c1, c2, c3 = st.columns([2, 2, 2])
         area_terreno = c1.number_input("Área Terreno (m²)", min_value=0.0, format="%.2f", label_visibility="visible")
         area_privativa = c2.number_input("Área Privativa Total (m²)", min_value=0.0, format="%.2f", label_visibility="visible")
         num_unidades = c3.number_input("Nº de Unidades", min_value=1, step=1, label_visibility="visible")
