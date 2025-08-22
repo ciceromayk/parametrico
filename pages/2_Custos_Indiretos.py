@@ -186,4 +186,3 @@ with st.expander("Análise Detalhada de Custos Indiretos", expanded=True):
 
     # Adicionar espaçamento vertical para separar a área de edição
     st.write("<br>", unsafe_allow_html=True)
-
