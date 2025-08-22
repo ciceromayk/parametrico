@@ -193,8 +193,13 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
     custos_labels = ['Custo Direto', 'Custo Indireto', 'Custo do Terreno']
     custos_valores = [custo_direto_total, custo_indireto_calculado, custo_terreno_total]
     
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.pie(custos_valores, labels=custos_labels, autopct='%1.1f%%', startangle=90, colors=['#31708f', '#8a6d3b', '#6f42c1'])
+    # Criar a função de formatação para o autopct
+    def format_value_and_percent(pct):
+        absolute_value = pct / 100. * sum(custos_valores)
+        return f'R$ {fmt_br(absolute_value)}\n({pct:.1f}%)'
+
+    fig, ax = plt.subplots(figsize=(8, 8)) # Tamanho ajustado para ocupar a largura da página
+    ax.pie(custos_valores, labels=custos_labels, autopct=format_value_and_percent, startangle=90, colors=['#31708f', '#8a6d3b', '#6f42c1'], textprops={'fontsize': 10})
     ax.set_title("Composição do Custo Total")
     
     buf = BytesIO()
@@ -366,7 +371,7 @@ def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_val
         </table>
 
         <div style="text-align: center; margin-top: 30px;">
-            <img src="data:image/png;base64,{grafico_base64}" alt="Gráfico de Composição do Custo Total" style="width: 50%; max-width: 400px;"/>
+            <img src="data:image/png;base64,{grafico_base64}" alt="Gráfico de Composição do Custo Total" style="width: 80%; max-width: 600px;"/>
         </div>
 
         <div class="page-break"></div>
