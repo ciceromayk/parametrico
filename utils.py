@@ -4,10 +4,12 @@ import pandas as pd
 import json
 import os
 from datetime import datetime
-from fpdf import FPDF
+# REMOVIDO: from fpdf import FPDF
+# ADICIONADO:
+from weasyprint import HTML, CSS
 
-# --- CONSTANTES GLOBAIS ---
-# (Nenhuma alteração nesta seção)
+# --- CONSTANTES GLOBAIS e outras funções ---
+# (Toda a parte inicial do seu arquivo, até a função render_sidebar, continua exatamente igual)
 JSON_PATH = "projects.json"
 HISTORICO_DIRETO_PATH = "historico_direto.json"
 HISTORICO_INDIRETO_PATH = "historico_indireto.json"
@@ -53,8 +55,6 @@ DEFAULT_CUSTOS_INDIRETOS = {
 }
 DEFAULT_CUSTOS_INDIRETOS_FIXOS = {}
 
-# --- FUNÇÕES DE GESTÃO DE DADOS ---
-# (Nenhuma alteração nesta seção)
 def init_storage(path):
     if not os.path.exists(path):
         with open(path, "w", encoding="utf-8") as f: json.dump([], f, ensure_ascii=False, indent=4)
@@ -97,8 +97,6 @@ def save_to_historico(info, tipo_custo):
     save_json(historico, path)
     st.toast(f"Custos {tipo_custo} de '{info['nome']}' arquivados no histórico!", icon="📚")
 
-# --- FUNÇÕES DE LÓGICA E UI ---
-# (Nenhuma alteração nesta seção)
 def fmt_br(valor):
     s = f"{valor:,.2f}"; return s.replace(",", "X").replace(".", ",").replace("X", ".")
 def render_metric_card(title, value, color="#31708f"):
@@ -122,8 +120,6 @@ def handle_percentage_redistribution(session_key, constants_dict):
                 current[item]['percentual'] = max(min_val, min(new_percent, max_val))
     st.session_state[previous_key] = {k: v.copy() for k, v in current.items()}; st.rerun()
 
-# --- ALTERAÇÃO AQUI ---
-# A função agora aceita um parâmetro 'form_key'
 def render_sidebar(form_key="edit_form_sidebar"):
     st.sidebar.title("Estudo de Viabilidade")
     st.sidebar.divider()
@@ -132,7 +128,6 @@ def render_sidebar(form_key="edit_form_sidebar"):
         info = st.session_state.projeto_info
         st.sidebar.subheader(f"Projeto: {info['nome']}")
         with st.sidebar.expander("📝 Dados Gerais do Projeto"):
-            # A chave do formulário agora é dinâmica
             with st.form(key=form_key):
                 info['nome'] = st.text_input("Nome", value=info['nome'])
                 info['area_terreno'] = st.number_input("Área Terreno (m²)", value=info['area_terreno'], format="%.2f")
@@ -164,69 +159,86 @@ def render_sidebar(form_key="edit_form_sidebar"):
                 if key in st.session_state: del st.session_state[key]
             st.switch_page("Início.py")
 
-# (As funções e classes de PDF continuam as mesmas)
-class PDF(FPDF):
-    def header(self):
-        def sanitize_text(text):
-            return text.encode('latin-1', 'replace').decode('latin-1')
-        self.set_font('Arial', 'B', 16)
-        title = sanitize_text('Relatório de Viabilidade de Empreendimento')
-        self.cell(0, 10, title, 0, 1, 'C')
-        self.ln(5)
-    def footer(self):
-        def sanitize_text(text):
-            return text.encode('latin-1', 'replace').decode('latin-1')
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        page_text = sanitize_text(f'Página {self.page_no()}')
-        self.cell(0, 10, page_text, 0, 0, 'C')
-
+# --- NOVA FUNÇÃO DE GERAÇÃO DE PDF ---
 def generate_pdf_report(info, vgv_total, valor_total_despesas, lucratividade_valor, lucratividade_percentual,
                         custo_direto_total, custo_indireto_calculado, custo_terreno_total, area_construida_total):
-    def sanitize_text(text):
-        return str(text).encode('latin-1', 'replace').decode('latin-1')
-    pdf = PDF()
-    pdf.add_page()
-    pdf.set_font('Arial', '', 12)
-    def create_pdf_card(title, value, x, y, w, h, color):
-        r, g, b = tuple(int(color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
-        pdf.set_xy(x, y); pdf.set_fill_color(r, g, b); pdf.set_text_color(255, 255, 255); pdf.cell(w, h, '', 0, 1, 'C', 1)
-        pdf.set_xy(x, y + 2); pdf.set_font('Arial', 'B', 9); pdf.multi_cell(w, 4, sanitize_text(title), 0, 'C')
-        pdf.set_xy(x, y + 10); pdf.set_font('Arial', 'B', 14); pdf.cell(w, 8, sanitize_text(value), 0, 1, 'C'); pdf.set_text_color(0, 0, 0)
     
-    pdf.set_font('Arial', 'B', 14); pdf.cell(0, 10, sanitize_text(f"Projeto: {info['nome']}"), 0, 1, 'L'); pdf.ln(5)
-    pdf.set_font('Arial', 'B', 12); pdf.cell(0, 10, "Resultados Financeiros", 0, 1, 'L')
-    cores = ["#00829d", "#6a42c1", "#3c763d", "#a94442"]
-    cards_data = [("VGV Total", f"R$ {fmt_br(vgv_total)}", cores[0]),("Custo Total", f"R$ {fmt_br(valor_total_despesas)}", cores[1]),
-                  ("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}", cores[2]),("Margem de Lucro", f"{lucratividade_percentual:.2f}%", cores[3])]
-    card_w, card_h = 45, 20
-    for i, (title, value, color) in enumerate(cards_data):
-        create_pdf_card(title, value, 10 + i * card_w, pdf.get_y(), card_w, card_h, color)
-    pdf.ln(card_h + 10)
+    # Função auxiliar para criar um card em HTML
+    def create_html_card(title, value, color):
+        return f"""
+        <div class="card" style="background-color: {color};">
+            <div class="card-title">{title}</div>
+            <div class="card-value">{value}</div>
+        </div>
+        """
 
-    pdf.set_font('Arial', 'B', 12); pdf.cell(0, 10, sanitize_text("Composição do Custo Total"), 0, 1, 'L')
+    # Monta o corpo do HTML
+    html_string = f"""
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+            body {{ font-family: 'Roboto', sans-serif; color: #333; }}
+            h1 {{ text-align: center; color: #1a5276; }}
+            h2 {{ color: #1f618d; border-bottom: 2px solid #aed6f1; padding-bottom: 5px; margin-top: 30px; }}
+            .container {{ display: flex; justify-content: space-between; gap: 15px; margin-bottom: 20px; }}
+            .card {{ 
+                flex: 1; 
+                color: white; 
+                border-radius: 8px; 
+                padding: 15px; 
+                text-align: center; 
+                box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+            }}
+            .card-title {{ font-size: 14px; margin-bottom: 5px; font-weight: bold; }}
+            .card-value {{ font-size: 22px; font-weight: bold; }}
+            footer {{ position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 12px; color: #888; }}
+        </style>
+    </head>
+    <body>
+        <h1>Relatório de Viabilidade de Empreendimento</h1>
+        <h2>Projeto: {info.get('nome', 'N/A')}</h2>
+
+        <h2>Resultados Financeiros</h2>
+        <div class="container">
+            {create_html_card("VGV Total", f"R$ {fmt_br(vgv_total)}", "#00829d")}
+            {create_html_card("Custo Total", f"R$ {fmt_br(valor_total_despesas)}", "#6a42c1")}
+            {create_html_card("Lucro Bruto", f"R$ {fmt_br(lucratividade_valor)}", "#3c763d")}
+            {create_html_card("Margem de Lucro", f"{lucratividade_percentual:.2f}%", "#a94442")}
+        </div>
+
+        <h2>Composição do Custo Total</h2>
+        <div class="container">
+    """
     if valor_total_despesas > 0:
         p_direto = (custo_direto_total / valor_total_despesas * 100)
         p_indireto = (custo_indireto_calculado / valor_total_despesas * 100)
         p_terreno = (custo_terreno_total / valor_total_despesas * 100)
-        comp_cards_data = [(f"Custo Direto ({p_direto:.2f}%)", f"R$ {fmt_br(custo_direto_total)}", "#31708f"),
-                           (f"Custo Indireto ({p_indireto:.2f}%)", f"R$ {fmt_br(custo_indireto_calculado)}", "#8a6d3b"),
-                           (f"Custo do Terreno ({p_terreno:.2f}%)", f"R$ {fmt_br(custo_terreno_total)}", "#6f42c1")]
-        card_w, card_h = 60, 20
-        for i, (title, value, color) in enumerate(comp_cards_data):
-            create_pdf_card(title, value, 10 + i * card_w, pdf.get_y(), card_w, card_h, color)
-        pdf.ln(card_h + 10)
+        html_string += f"""
+            {create_html_card(f"Custo Direto ({p_direto:.2f}%)", f"R$ {fmt_br(custo_direto_total)}", "#31708f")}
+            {create_html_card(f"Custo Indireto ({p_indireto:.2f}%)", f"R$ {fmt_br(custo_indireto_calculado)}", "#8a6d3b")}
+            {create_html_card(f"Custo do Terreno ({p_terreno:.2f}%)", f"R$ {fmt_br(custo_terreno_total)}", "#6f42c1")}
+        """
+    html_string += """
+        </div>
 
-    pdf.set_font('Arial', 'B', 12); pdf.cell(0, 10, sanitize_text("Indicadores por Área Construída"), 0, 1, 'L')
-    cores = ["#fd7e14", "#20c997", "#31708f", "#8a6d3b" ]
-    ind_cards_data = [("Terreno / Custo Total", f"{(custo_terreno_total / valor_total_despesas * 100 if valor_total_despesas > 0 else 0):.2f}%", cores[0]),
-                      (sanitize_text("Custo Direto / m²"), f"R$ {fmt_br(custo_direto_total / area_construida_total if area_construida_total > 0 else 0)}", cores[1]),
-                      (sanitize_text("Custo Indireto / m²"), f"R$ {fmt_br(custo_indireto_calculado / area_construida_total if area_construida_total > 0 else 0)}", cores[2]),
-                      (sanitize_text("Custo Total / m²"), f"R$ {fmt_br(valor_total_despesas / area_construida_total if area_construida_total > 0 else 0)}", cores[3])]
-    card_w, card_h = 45, 20
-    for i, (title, value, color) in enumerate(ind_cards_data):
-        create_pdf_card(title, value, 10 + i * card_w, pdf.get_y(), card_w, card_h, color)
-    pdf.ln(card_h + 10)
-    
-    # Gera o PDF como uma string de bytes no formato latin-1
-    return pdf.output(dest='S')
+        <h2>Indicadores por Área Construída</h2>
+        <div class="container">
+    """
+    if area_construida_total > 0:
+        html_string += f"""
+            {create_html_card("Terreno / Custo Total", f"{(custo_terreno_total / valor_total_despesas * 100 if valor_total_despesas > 0 else 0):.2f}%", "#fd7e14")}
+            {create_html_card("Custo Direto / m²", f"R$ {fmt_br(custo_direto_total / area_construida_total)}", "#20c997")}
+            {create_html_card("Custo Indireto / m²", f"R$ {fmt_br(custo_indireto_calculado / area_construida_total)}", "#31708f")}
+            {create_html_card("Custo Total / m²", f"R$ {fmt_br(valor_total_despesas / area_construida_total)}", "#8a6d3b")}
+        """
+    html_string += """
+        </div>
+        <footer>Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}</footer>
+    </body>
+    </html>
+    """
+
+    # Converte a string HTML para PDF em memória e retorna os bytes
+    return HTML(string=html_string).write_pdf()
