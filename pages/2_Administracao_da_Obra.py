@@ -34,7 +34,7 @@ def card_metric_pro(label, value, delta=None, icon_name="cash-coin", bg_color="l
     <div style="
         border: 1px solid #e0e0e0;
         border-radius: 12px;
-        padding: 20px;
+        padding: 15px; /* Reduz o padding para diminuir a altura */
         text-align: center;
         background: {bg_color};
         box-shadow: 5px 5px 15px rgba(0,0,0,0.05);
@@ -43,12 +43,12 @@ def card_metric_pro(label, value, delta=None, icon_name="cash-coin", bg_color="l
     onmouseover="this.style.transform='scale(1.03)'"
     onmouseout="this.style.transform='scale(1)'"
     >
-        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
-            <i class="bi bi-{icon_name}" style="font-size: 1.5em; margin-right: 10px; color: {text_color};"></i>
-            <h3 style="margin: 0; color: #333; font-size: 1.2em;">{label}</h3>
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
+            <i class="bi bi-{icon_name}" style="font-size: 1.2em; margin-right: 8px; color: {text_color};"></i>
+            <h3 style="margin: 0; color: #333; font-size: 1.0em;">{label}</h3>
         </div>
-        <p style="font-size: 2.5em; font-weight: bold; margin: 0; color: {text_color};">{value}</p>
-        {f'<p style="color: {"green" if delta and delta > 0 else "red"}; font-size: 1em;">{f"+{delta}%" if delta else ""}</p>' if delta is not None else ''}
+        <p style="font-size: 1.8em; font-weight: bold; margin: 0; color: {text_color};">{value}</p>
+        {f'<p style="color: {"green" if delta and delta > 0 else "red"}; font-size: 0.8em;">{f"+{delta}%" if delta else ""}</p>' if delta is not None else ''}
     </div>
     """, unsafe_allow_html=True)
 
@@ -159,7 +159,6 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
         
         with col_metricas_obra:
             st.subheader("Resumo") # Alterado para subheader
-            st.write("<br>", unsafe_allow_html=True)
 
             card_metric_pro(
                 label="Custo Mensal Total",
@@ -168,7 +167,6 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
                 bg_color="linear-gradient(145deg, #e6f2ff, #cce5ff)",
                 text_color="#0056b3"
             )
-            st.write("<br>", unsafe_allow_html=True)
             
             card_metric_pro(
                 label="Duração da Obra (meses)",
@@ -177,8 +175,7 @@ with st.expander("💸 Custos Indiretos de Obra (por Período)", expanded=True):
                 bg_color="linear-gradient(145deg, #f0fff0, #d9f7d9)",
                 text_color="#28a745"
             )
-            st.write("<br>", unsafe_allow_html=True)
-
+            
             card_metric_pro(
                 label="Custo Indireto de Obra Total",
                 value=f"R$ {fmt_br(custo_indireto_obra_total_recalculado)}",
