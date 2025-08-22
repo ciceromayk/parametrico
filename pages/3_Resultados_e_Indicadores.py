@@ -126,20 +126,19 @@ def generate_ai_analysis():
     }
 
     prompt = f"""
-    Aja como um analista de viabilidade de empreendimentos imobiliários sênior.
-    Sua tarefa é analisar os dados de um projeto e gerar um relatório detalhado e analítico, em português.
-    
-    O relatório deve ter as seguintes seções:
-    1.  **Avaliação da Viabilidade Financeira**: Um parágrafo inicial que resume a saúde financeira do projeto. Compare a Margem de Lucro Bruto com benchmarks de mercado (e.g., uma margem acima de 15% é geralmente considerada promissora) e comente sobre o Lucro Bruto e a atratividade do investimento.
-    2.  **Análise Detalhada dos Custos**: Analise a composição do Custo Total. Apresente os valores absolutos e as porcentagens de cada tipo de custo (Custo Direto, Custo Indireto de Venda, Custo Indireto de Obra e Custo do Terreno). Comente sobre a proporção de cada custo e identifique qual deles representa a maior fatia e o impacto que isso pode ter.
-    3.  **Análise de Desempenho por Área**: Forneça e interprete os indicadores de custo por metro quadrado (m²) para o Custo Direto, o Custo Indireto e o Custo Total. Comente sobre o quão competitivos ou elevados esses custos são para o tipo de empreendimento.
-    4.  **Recomendações Estratégicas**: Forneça uma lista de 3 a 5 recomendações acionáveis para melhorar a viabilidade do projeto. As recomendações devem ser específicas. Por exemplo, cite exemplos de onde a redução de custos pode ocorrer ou como a receita pode ser aumentada.
-    5.  **Conclusão e Próximos Passos**: Um parágrafo final que resume a análise e oferece uma perspectiva sobre os próximos passos, como aprofundar estudos de mercado ou iniciar a fase de detalhamento.
+    Act as a senior real estate development viability analyst. Your task is to analyze a project's data and generate a detailed and analytical report in Portuguese.
 
-    Abaixo estão os dados do projeto. Utilize-os para a análise. Os valores estão em Reais (R$).
+    The report should have the following sections:
+    1.  **Avaliação da Viabilidade Financeira**: Start with a paragraph summarizing the financial health of the project. Base your conclusion on the Gross Profit Margin, comparing it with market benchmarks (e.g., a margin above 15% is generally considered promising) and comment on the Gross Profit and the attractiveness of the investment.
+    2.  **Análise Detalhada dos Custos**: Analyze the composition of the Total Cost. Present the absolute values and percentages of each cost type (Direct Cost, Indirect Sales Cost, Indirect Construction Cost, and Land Cost). Comment on the proportion of each cost, identifying which one represents the largest share and how this might impact the project.
+    3.  **Análise de Desempenho por Área**: Provide and interpret the cost per square meter (m²) indicators for Direct Cost, Indirect Cost, and Total Cost. Comment on how competitive or high these costs are for the type of development.
+    4.  **Recomendações Estratégicas**: Provide a list of 3 to 5 actionable strategic recommendations to improve the project's viability. The recommendations should be specific. For example, cite examples of where cost reduction can occur or how revenue can be increased.
+    5.  **Conclusão e Próximos Passos**: A final paragraph that summarizes the analysis and offers a perspective on the next steps, such as conducting deeper market studies or starting the detailing phase.
+
+    Below is the project data. Use it for the analysis. The values are in Brazilian Reais (R$).
     
-    Dados do Projeto:
-    - Nome: {prompt_data['nome_projeto']}
+    Project Data:
+    - Name: {prompt_data['nome_projeto']}
     - VGV Total: R$ {prompt_data['vgv_total']:.2f}
     - Custo Total: R$ {prompt_data['custo_total']:.2f}
     - Lucro Bruto: R$ {prompt_data['lucro_bruto']:.2f}
